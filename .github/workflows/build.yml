@@ -26,9 +26,9 @@ jobs:
         run: |
           set -euxo pipefail
           arduino-cli core update-index
-          # Use latest ESP32 core (3.x). If you hit toolchain quirks, pin e.g. esp32:esp32@2.0.17
+          # Use latest ESP32 core; pin a version if needed (e.g. esp32:esp32@2.0.17)
           arduino-cli core install esp32:esp32
-          # Libraries required by the sketch
+          # Required libraries
           arduino-cli lib install \
             "ArduinoJson@7.4.1" \
             "WiFiManager@2.0.17" \
@@ -38,7 +38,7 @@ jobs:
             "HttpClient@2.2.0"
           arduino-cli lib list
 
-      # If lv_conf.h exists, wire it in; otherwise use LVGL internal defaults
+      # If lv_conf.h exists in repo, use it; otherwise use LVGL internal defaults
       - name: Configure LVGL (lv_conf.h or skip)
         id: lvgl
         run: |
@@ -53,7 +53,7 @@ jobs:
             echo "No lv_conf.h found; using LVGL internal defaults"
           fi
 
-      # Make repo includes like "config/screen_select.h" visible to the sketch
+      # Make "#include \"config/...\"" visible to the sketch (Arduino searches the sketch dir)
       - name: Make config headers visible to the sketch
         run: |
           set -euxo pipefail
@@ -70,7 +70,7 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p "$HOME/Arduino/libraries/TFT_eSPI"
-          # Try two common locations for your custom setups:
+          # Try common locations for your custom setups
           case "${{ matrix.target }}" in
             28_ILI9341) CANDIDATES=("TFT_eSPI/User_Setup_AURA_28_ILI9341.h" "config/tft/User_Setup_AURA_28_ILI9341.h") ;;
             24_ILI9341) CANDIDATES=("TFT_eSPI/User_Setup_AURA_24_ILI9341.h" "config/tft/User_Setup_AURA_24_ILI9341.h") ;;
@@ -91,8 +91,9 @@ jobs:
         run: |
           set -euxo pipefail
           EXTRA_FLAGS=""
-          if [ "${{ matrix.target }}" = "24_ILI9341" ]; then EXTRA_FLAGS='-DAURA_SCREEN=24_ILI9341'; fi
-          if [ "${{ matrix.target }}" = "24_ST7789" ]; then EXTRA_FLAGS='-DAURA_SCREEN=24_ST7789'; fi
+          # Use symbol-style flags; screen_select.h switches by defined symbol
+          if [ "${{ matrix.target }}" = "24_ILI9341" ]; then EXTRA_FLAGS='-DAURA_SCREEN_24_ILI9341'; fi
+          if [ "${{ matrix.target }}" = "24_ST7789" ]; then EXTRA_FLAGS='-DAURA_SCREEN_24_ST7789'; fi
           OUT="out/${{ matrix.target }}"
           mkdir -p "$OUT"
           test -f aura/aura.ino || { echo "::error ::missing aura/aura.ino"; exit 1; }
