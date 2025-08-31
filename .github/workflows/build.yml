@@ -26,8 +26,8 @@ jobs:
         run: |
           set -euxo pipefail
           arduino-cli core update-index
-          # Use latest ESP32 core; pin a version if needed (e.g. esp32:esp32@2.0.17)
-          arduino-cli core install esp32:esp32
+          # Pin toolchain to classic 2.0.x to match upstream IDE builds
+          arduino-cli core install esp32:esp32@2.0.17
           # Required libraries
           arduino-cli lib install \
             "ArduinoJson@7.4.1" \
