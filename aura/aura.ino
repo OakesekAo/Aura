@@ -1,3 +1,6 @@
+#include <WebServer.h>
+#include <DNSServer.h>
+
 class WiFiManager;
 
 #include <Arduino.h>
