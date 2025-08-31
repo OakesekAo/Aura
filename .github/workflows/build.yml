@@ -40,7 +40,70 @@ jobs:
           else
             arduino-cli compile --fqbn esp32:esp32:esp32 --build-properties build.partitions=huge_app --build-properties build.extra_flags="-DAURA_SCREEN=${{ matrix.screen }}" aura/weather.ino --output-dir ./bin/aura/2.4/
           fi
+<<<<<<< Updated upstream
       - name: Upload Artifacts
+=======
+
+      - name: Select TFT_eSPI User_Setup for ${{ matrix.target }}
+        run: |
+          set -euxo pipefail
+          mkdir -p "$HOME/Arduino/libraries/TFT_eSPI"
+          # Try common locations for your custom setups
+          case "${{ matrix.target }}" in
+            28_ILI9341) CANDIDATES=("TFT_eSPI/User_Setup_AURA_28_ILI9341.h" "config/tft/User_Setup_AURA_28_ILI9341.h") ;;
+            24_ILI9341) CANDIDATES=("TFT_eSPI/User_Setup_AURA_24_ILI9341.h" "config/tft/User_Setup_AURA_24_ILI9341.h") ;;
+            24_ST7789)  CANDIDATES=("TFT_eSPI/User_Setup_AURA_24_ST7789.h"  "config/tft/User_Setup_AURA_24_ST7789.h") ;;
+          esac
+          SRC=""
+          for p in "${CANDIDATES[@]}"; do
+            if [ -f "$p" ]; then SRC="$p"; break; fi
+          done
+          if [ -z "$SRC" ]; then
+            echo "::error ::Custom TFT_eSPI User_Setup not found for ${{ matrix.target }}"; exit 1
+          fi
+          ls -l "$SRC"
+          cp "$SRC" "$HOME/Arduino/libraries/TFT_eSPI/User_Setup.h"
+          echo "Using $SRC → $HOME/Arduino/libraries/TFT_eSPI/User_Setup.h"
+
+      - name: Compile ${{ matrix.target }}
+          run: |
+            set -euxo pipefail
+            EXTRA_FLAGS=""
+            # Use symbol-style flags; screen_select.h switches by defined symbol
+            if [ "${{ matrix.target }}" = "24_ILI9341" ]; then EXTRA_FLAGS='-DAURA_SCREEN_24_ILI9341'; fi
+            if [ "${{ matrix.target }}" = "24_ST7789" ]; then EXTRA_FLAGS='-DAURA_SCREEN_24_ST7789'; fi
+            OUT="out/${{ matrix.target }}"
+            mkdir -p "$OUT"
+            test -f aura/aura.ino || { echo "::error ::missing aura/aura.ino"; exit 1; }
+            arduino-cli compile \
+              --fqbn esp32:esp32:esp32 \
+              --board-options PartitionScheme=huge_app \
+              --build-property "build.extra_flags=$EXTRA_FLAGS ${{ steps.lvgl.outputs.FLAGS }} -DLV_USE_TFT_ESPI=1" \
+              --build-property "compiler.cpp.extra_flags=-include preinclude.h" \
+              --export-binaries \
+              --output-dir "$OUT" \
+              aura
+
+      - name: Collect artifacts ${{ matrix.target }}
+        run: |
+          set -euxo pipefail
+          OUT="out/${{ matrix.target }}"
+          mkdir -p "dist/${{ matrix.target }}"
+          # app.bin (sketch), bootloader.bin, partitions.bin from export-binaries output
+          cp $(find "$OUT" -maxdepth 1 -type f -name "*.bin" ! -name "*partitions*.bin" ! -name "*bootloader*.bin" | head -n1) "dist/${{ matrix.target }}/app.bin"
+          cp $(find "$OUT" -maxdepth 1 -type f -name "*bootloader*.bin" | head -n1) "dist/${{ matrix.target }}/bootloader.bin"
+          cp $(find "$OUT" -maxdepth 1 -type f -name "*partitions*.bin" | head -n1) "dist/${{ matrix.target }}/partitions.bin"
+          # boot_app0.bin from the ESP32 core
+          CORE="$HOME/.arduino15/packages/esp32/hardware/esp32/$(ls $HOME/.arduino15/packages/esp32/hardware/esp32 | tail -n1)"
+          cp "$CORE/tools/partitions/boot_app0.bin" "dist/${{ matrix.target }}/boot_app0.bin"
+          # Guard: fail if any file is empty
+          for f in dist/${{ matrix.target }}/*.bin; do
+            [ -s "$f" ] || { echo "::error file=$f::empty bin"; exit 1; }
+          done
+          ls -lh dist/${{ matrix.target }}
+
+      - name: Upload ${{ matrix.target }} artifacts
+>>>>>>> Stashed changes
         uses: actions/upload-artifact@v4
         with:
           name: aura-${{ matrix.screen }}-bin
