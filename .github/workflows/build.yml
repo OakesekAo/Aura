@@ -100,7 +100,7 @@ jobs:
           arduino-cli compile \
             --fqbn esp32:esp32:esp32 \
             --board-options PartitionScheme=huge_app \
-            --build-property "build.extra_flags=$EXTRA_FLAGS ${{ steps.lvgl.outputs.FLAGS }} -DLV_USE_TFT_ESPI=1" \
+            --build-property "build.extra_flags=$EXTRA_FLAGS ${{ steps.lvgl.outputs.FLAGS }} -DLV_USE_TFT_ESPI=1 -include WebServer.h -include DNSServer.h -include WiFiManager.h" \
             --export-binaries \
             --output-dir "$OUT" \
             aura
