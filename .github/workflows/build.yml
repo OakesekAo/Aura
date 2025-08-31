@@ -26,23 +26,31 @@ jobs:
         run: |
           set -euxo pipefail
           arduino-cli core update-index
-          # Use latest stable ESP32 core; if you hit toolchain quirks, pin (e.g. esp32:esp32@2.0.17)
           arduino-cli core install esp32:esp32
-          # Libraries required by the sketch
           arduino-cli lib install \
             "ArduinoJson@7.4.1" \
             "WiFiManager@2.0.17" \
             "XPT2046_Touchscreen@1.4" \
             "TFT_eSPI@2.5.43" \
-            "lvgl@9.2.2"
+            "lvgl@9.2.2" \
+            "HttpClient@2.2.0"
           arduino-cli lib list
 
-      - name: Provide LVGL config (lv_conf.h)
+      # If lv_conf.h exists in the repo root, use it.
+      # Otherwise, tell LVGL to skip external config and use built-in defaults.
+      - name: Configure LVGL (lv_conf.h or skip)
+        id: lvgl
         run: |
           set -euxo pipefail
-          mkdir -p "$HOME/Arduino/libraries/lvgl"
-          cp lv_conf.h "$HOME/Arduino/libraries/lvgl/lv_conf.h"
-          ls -l "$HOME/Arduino/libraries/lvgl/lv_conf.h"
+          if [ -f lv_conf.h ]; then
+            mkdir -p "$HOME/Arduino/libraries/lvgl"
+            cp lv_conf.h "$HOME/Arduino/libraries/lvgl/lv_conf.h"
+            echo "FLAGS=-DLV_CONF_INCLUDE_SIMPLE" >> $GITHUB_OUTPUT
+            echo "Using repo lv_conf.h"
+          else
+            echo "FLAGS=-DLV_CONF_SKIP" >> $GITHUB_OUTPUT
+            echo "No lv_conf.h found; using LVGL internal defaults"
+          fi
 
       - name: Select TFT_eSPI User_Setup for ${{ matrix.target }}
         run: |
@@ -53,7 +61,7 @@ jobs:
             24_ILI9341) SRC="TFT_eSPI/User_Setup_AURA_24_ILI9341.h" ;;
             24_ST7789)  SRC="TFT_eSPI/User_Setup_AURA_24_ST7789.h" ;;
           esac
-          # If your files live elsewhere (e.g. config/tft/), update SRC paths above.
+          # If your files live somewhere else (e.g. config/tft/), change the SRC paths above.
           ls -l "$SRC"
           cp "$SRC" "$HOME/Arduino/libraries/TFT_eSPI/User_Setup.h"
           echo "Using $SRC → $HOME/Arduino/libraries/TFT_eSPI/User_Setup.h"
@@ -70,7 +78,7 @@ jobs:
           arduino-cli compile \
             --fqbn esp32:esp32:esp32 \
             --board-options PartitionScheme=huge_app \
-            --build-property "build.extra_flags=$EXTRA_FLAGS -DLV_CONF_INCLUDE_SIMPLE" \
+            --build-property "build.extra_flags=$EXTRA_FLAGS ${{ steps.lvgl.outputs.FLAGS }}" \
             --export-binaries \
             --output-dir "$OUT" \
             aura
