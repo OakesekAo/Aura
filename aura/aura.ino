@@ -1,20 +1,9 @@
-#include <WebServer.h>
-#include <DNSServer.h>
-
-class WiFiManager;
-
 #include <Arduino.h>
-#include <WiFi.h>
-#include <WiFiClient.h>
 #include <WiFiManager.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <time.h>
-
 #include <lvgl.h>
-// For lv_tft_espi_create()
-#include "drivers/display/tft_espi/lv_tft_espi.h"
-
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 #include <Preferences.h>
@@ -25,10 +14,9 @@ class WiFiManager;
 #define XPT2046_MISO 39  // T_OUT
 #define XPT2046_CLK 25   // T_CLK
 #define XPT2046_CS 33    // T_CS
-#include "config/screen_select.h"
-#define LCD_BACKLIGHT_PIN AURA_TFT_BL
-#define SCREEN_WIDTH AURA_TFT_WIDTH
-#define SCREEN_HEIGHT AURA_TFT_HEIGHT
+#define LCD_BACKLIGHT_PIN 21
+#define SCREEN_WIDTH 240
+#define SCREEN_HEIGHT 320
 #define DRAW_BUF_SIZE (SCREEN_WIDTH * SCREEN_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
 
 #define LATITUDE_DEFAULT "51.5074"
