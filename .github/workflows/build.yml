@@ -26,7 +26,9 @@ jobs:
         run: |
           set -euxo pipefail
           arduino-cli core update-index
+          # Use latest ESP32 core (3.x). If you hit toolchain quirks, pin e.g. esp32:esp32@2.0.17
           arduino-cli core install esp32:esp32
+          # Libraries required by the sketch
           arduino-cli lib install \
             "ArduinoJson@7.4.1" \
             "WiFiManager@2.0.17" \
@@ -36,8 +38,7 @@ jobs:
             "HttpClient@2.2.0"
           arduino-cli lib list
 
-      # If lv_conf.h exists in the repo root, use it.
-      # Otherwise, tell LVGL to skip external config and use built-in defaults.
+      # If lv_conf.h exists, wire it in; otherwise use LVGL internal defaults
       - name: Configure LVGL (lv_conf.h or skip)
         id: lvgl
         run: |
@@ -52,16 +53,36 @@ jobs:
             echo "No lv_conf.h found; using LVGL internal defaults"
           fi
 
+      # Make repo includes like "config/screen_select.h" visible to the sketch
+      - name: Make config headers visible to the sketch
+        run: |
+          set -euxo pipefail
+          if [ -d config ]; then
+            mkdir -p aura/config
+            rsync -a config/ aura/config/
+            echo "Copied ./config -> ./aura/config"
+            find aura/config -maxdepth 2 -type f -print
+          else
+            echo "::warning ::No ./config directory found"
+          fi
+
       - name: Select TFT_eSPI User_Setup for ${{ matrix.target }}
         run: |
           set -euxo pipefail
           mkdir -p "$HOME/Arduino/libraries/TFT_eSPI"
+          # Try two common locations for your custom setups:
           case "${{ matrix.target }}" in
-            28_ILI9341) SRC="TFT_eSPI/User_Setup_AURA_28_ILI9341.h" ;;
-            24_ILI9341) SRC="TFT_eSPI/User_Setup_AURA_24_ILI9341.h" ;;
-            24_ST7789)  SRC="TFT_eSPI/User_Setup_AURA_24_ST7789.h" ;;
+            28_ILI9341) CANDIDATES=("TFT_eSPI/User_Setup_AURA_28_ILI9341.h" "config/tft/User_Setup_AURA_28_ILI9341.h") ;;
+            24_ILI9341) CANDIDATES=("TFT_eSPI/User_Setup_AURA_24_ILI9341.h" "config/tft/User_Setup_AURA_24_ILI9341.h") ;;
+            24_ST7789)  CANDIDATES=("TFT_eSPI/User_Setup_AURA_24_ST7789.h"  "config/tft/User_Setup_AURA_24_ST7789.h") ;;
           esac
-          # If your files live somewhere else (e.g. config/tft/), change the SRC paths above.
+          SRC=""
+          for p in "${CANDIDATES[@]}"; do
+            if [ -f "$p" ]; then SRC="$p"; break; fi
+          done
+          if [ -z "$SRC" ]; then
+            echo "::error ::Custom TFT_eSPI User_Setup not found for ${{ matrix.target }}"; exit 1
+          fi
           ls -l "$SRC"
           cp "$SRC" "$HOME/Arduino/libraries/TFT_eSPI/User_Setup.h"
           echo "Using $SRC → $HOME/Arduino/libraries/TFT_eSPI/User_Setup.h"
@@ -88,11 +109,11 @@ jobs:
           set -euxo pipefail
           OUT="out/${{ matrix.target }}"
           mkdir -p "dist/${{ matrix.target }}"
-          # app.bin (sketch), bootloader.bin, partitions.bin from export-binaries
+          # app.bin (sketch), bootloader.bin, partitions.bin from export-binaries output
           cp $(find "$OUT" -maxdepth 1 -type f -name "*.bin" ! -name "*partitions*.bin" ! -name "*bootloader*.bin" | head -n1) "dist/${{ matrix.target }}/app.bin"
           cp $(find "$OUT" -maxdepth 1 -type f -name "*bootloader*.bin" | head -n1) "dist/${{ matrix.target }}/bootloader.bin"
           cp $(find "$OUT" -maxdepth 1 -type f -name "*partitions*.bin" | head -n1) "dist/${{ matrix.target }}/partitions.bin"
-          # boot_app0 from the ESP32 core
+          # boot_app0.bin from the ESP32 core
           CORE="$HOME/.arduino15/packages/esp32/hardware/esp32/$(ls $HOME/.arduino15/packages/esp32/hardware/esp32 | tail -n1)"
           cp "$CORE/tools/partitions/boot_app0.bin" "dist/${{ matrix.target }}/boot_app0.bin"
           # Guard: fail if any file is empty
