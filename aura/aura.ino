@@ -1,4 +1,6 @@
 #include <Arduino.h>
+#include <WiFi.h>          // ESP32 WiFi (provides WiFi, WL_CONNECTED, etc.)
+#include <WiFiClient.h>    // optional but common
 #include <WiFiManager.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
