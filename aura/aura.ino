@@ -1,3 +1,5 @@
+class WiFiManager;                 // forward-declare so the auto-prototype sees the type
+void apModeCallback(WiFiManager*); // forward prototype that matches the definition below
 #include <Arduino.h>
 #include <WiFiManager.h>
 #include <HTTPClient.h>
