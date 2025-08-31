@@ -53,13 +53,18 @@ jobs:
       - name: Make config headers visible to the sketch
         run: |
           set -euxo pipefail
+          mkdir -p aura/config
           if [ -d config ]; then
-            mkdir -p aura/config
             rsync -a config/ aura/config/
-            echo "Copied ./config -> ./aura/config"
-          else
-            echo "::warning ::No ./config directory found"
           fi
+          echo "::group::Repo-root config"
+          find config -maxdepth 2 -type f -print || true
+          echo "::endgroup::"
+          echo "::group::Copied into aura/config"
+          find aura/config -maxdepth 3 -type f -print || true
+          echo "::endgroup::"
+          # Hard guard to fail early if default header is missing
+          test -f aura/config/screen/aura_28_ili9341.h
 
       - name: Select TFT_eSPI User_Setup for ${{ matrix.target }}
         run: |
