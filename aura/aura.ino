@@ -1,11 +1,17 @@
+class WiFiManager;
+
 #include <Arduino.h>
-#include <WiFi.h>          // ESP32 WiFi (provides WiFi, WL_CONNECTED, etc.)
-#include <WiFiClient.h>    // optional but common
+#include <WiFi.h>
+#include <WiFiClient.h>
 #include <WiFiManager.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <time.h>
+
 #include <lvgl.h>
+// For lv_tft_espi_create()
+#include "drivers/display/tft_espi/lv_tft_espi.h"
+
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 #include <Preferences.h>
