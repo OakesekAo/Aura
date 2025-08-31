@@ -1,4 +1,5 @@
 name: Aura Arduino CLI Build
+
 on:
   push:
     branches: [ "main", "feat/24-screen-support-ci" ]
@@ -8,7 +9,6 @@ on:
 
 jobs:
   build:
-    name: build (${{ matrix.target }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -19,7 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Arduino CLI
+      - name: Set up Arduino CLI
         uses: arduino/setup-arduino-cli@v1
 
       - name: Install ESP32 core & libraries
@@ -27,63 +27,54 @@ jobs:
           set -euxo pipefail
           arduino-cli core update-index
           arduino-cli core install esp32:esp32@2.0.17
+          # Pinned library versions match Aura README
           arduino-cli lib install \
             "ArduinoJson@7.4.1" \
+            "HttpClient@2.2.0" \
             "WiFiManager@2.0.17" \
             "XPT2046_Touchscreen@1.4" \
             "TFT_eSPI@2.5.43" \
-            "lvgl@9.2.2" \
-            "HttpClient@2.2.0"
+            "lvgl@9.2.2"
           arduino-cli lib list
-
-      - name: Configure LVGL (lv_conf.h or skip)
-        id: lvgl
-        run: |
-          set -euxo pipefail
-          if [ -f lv_conf.h ]; then
-            mkdir -p "$HOME/Arduino/libraries/lvgl"
-            cp lv_conf.h "$HOME/Arduino/libraries/lvgl/lv_conf.h"
-            echo "FLAGS=-DLV_CONF_INCLUDE_SIMPLE" >> $GITHUB_OUTPUT
-            echo "Using repo lv_conf.h"
-          else
-            echo "FLAGS=-DLV_CONF_SKIP" >> $GITHUB_OUTPUT
-            echo "No lv_conf.h found; using LVGL internal defaults"
-          fi
 
       - name: Make config headers visible to the sketch
         run: |
           set -euxo pipefail
-          mkdir -p aura/config
           if [ -d config ]; then
+            mkdir -p aura/config
             rsync -a config/ aura/config/
+            echo "Copied ./config -> ./aura/config"
+          else
+            echo "::warning ::No ./config directory found"
           fi
-          echo "::group::Repo-root config"
-          find config -maxdepth 2 -type f -print || true
-          echo "::endgroup::"
-          echo "::group::Copied into aura/config"
-          find aura/config -maxdepth 3 -type f -print || true
-          echo "::endgroup::"
-          # Hard guard to fail early if default header is missing
-          test -f aura/config/screen/aura_28_ili9341.h
+
+      - name: Make bundled LVGL visible to the sketch
+        run: |
+          set -euxo pipefail
+          if [ -d lvgl/src ]; then
+            mkdir -p aura/lvgl
+            rsync -a lvgl/ aura/lvgl/
+            echo "Copied ./lvgl -> ./aura/lvgl"
+            # sanity: ensure the driver header exists after copy
+            test -f aura/lvgl/src/drivers/display/tft_espi/lv_tft_espi.h || \
+              { echo "::error ::lv_tft_espi.h not found under aura/lvgl/src/drivers/display/tft_espi/"; exit 1; }
+          else
+            echo "::error ::No ./lvgl/src directory found in repo"
+            exit 1
+          fi
 
       - name: Select TFT_eSPI User_Setup for ${{ matrix.target }}
         run: |
           set -euxo pipefail
           mkdir -p "$HOME/Arduino/libraries/TFT_eSPI"
           case "${{ matrix.target }}" in
-            28_ILI9341) CANDIDATES=("TFT_eSPI/User_Setup_AURA_28_ILI9341.h" "config/tft/User_Setup_AURA_28_ILI9341.h") ;;
-            24_ILI9341) CANDIDATES=("TFT_eSPI/User_Setup_AURA_24_ILI9341.h" "config/tft/User_Setup_AURA_24_ILI9341.h") ;;
-            24_ST7789)  CANDIDATES=("TFT_eSPI/User_Setup_AURA_24_ST7789.h"  "config/tft/User_Setup_AURA_24_ST7789.h") ;;
+            28_ILI9341) SRC="TFT_eSPI/User_Setup_AURA_28_ILI9341.h" ;;
+            24_ILI9341) SRC="TFT_eSPI/User_Setup_AURA_24_ILI9341.h" ;;
+            24_ST7789)  SRC="TFT_eSPI/User_Setup_AURA_24_ST7789.h"  ;;
           esac
-          SRC=""
-          for p in "${CANDIDATES[@]}"; do
-            if [ -f "$p" ]; then SRC="$p"; break; fi
-          done
-          if [ -z "$SRC" ]; then
-            echo "::error ::Custom TFT_eSPI User_Setup not found for ${{ matrix.target }}"; exit 1
-          fi
+          test -f "$SRC" || { echo "::error ::Missing $SRC"; exit 1; }
           cp "$SRC" "$HOME/Arduino/libraries/TFT_eSPI/User_Setup.h"
-          echo "Using $SRC → $HOME/Arduino/libraries/TFT_eSPI/User_Setup.h"
+          echo "Using $SRC → \$HOME/Arduino/libraries/TFT_eSPI/User_Setup.h"
 
       - name: Compile ${{ matrix.target }}
         run: |
@@ -97,7 +88,7 @@ jobs:
           arduino-cli compile \
             --fqbn esp32:esp32:esp32 \
             --board-options PartitionScheme=huge_app \
-            --build-property "build.extra_flags=$EXTRA_FLAGS ${{ steps.lvgl.outputs.FLAGS }} -DLV_USE_TFT_ESPI=1" \
+            --build-property "build.extra_flags=$EXTRA_FLAGS -DLV_CONF_SKIP -DLV_USE_TFT_ESPI=1" \
             --export-binaries \
             --output-dir "$OUT" \
             aura
@@ -107,11 +98,14 @@ jobs:
           set -euxo pipefail
           OUT="out/${{ matrix.target }}"
           mkdir -p "dist/${{ matrix.target }}"
+          # app.bin, bootloader.bin, partitions.bin from export-binaries
           cp $(find "$OUT" -maxdepth 1 -type f -name "*.bin" ! -name "*partitions*.bin" ! -name "*bootloader*.bin" | head -n1) "dist/${{ matrix.target }}/app.bin"
           cp $(find "$OUT" -maxdepth 1 -type f -name "*bootloader*.bin" | head -n1) "dist/${{ matrix.target }}/bootloader.bin"
           cp $(find "$OUT" -maxdepth 1 -type f -name "*partitions*.bin" | head -n1) "dist/${{ matrix.target }}/partitions.bin"
-          CORE="$HOME/.arduino15/packages/esp32/hardware/esp32/$(ls $HOME/.arduino15/packages/esp32/hardware/esp32 | tail -n1)"
+          # boot_app0.bin from ESP32 core
+          CORE="$(ls -d $HOME/.arduino15/packages/esp32/hardware/esp32/* | sort -V | tail -n1)"
           cp "$CORE/tools/partitions/boot_app0.bin" "dist/${{ matrix.target }}/boot_app0.bin"
+          # Guard: fail if any file is empty
           for f in dist/${{ matrix.target }}/*.bin; do
             [ -s "$f" ] || { echo "::error file=$f::empty bin"; exit 1; }
           done
