@@ -1,22 +1,29 @@
-class WiFiManager;                 // forward-declare so the auto-prototype sees the type
-void apModeCallback(WiFiManager*); // forward prototype that matches the definition below
+
+// --- Make Arduino's auto-prototype happy with WiFiManager types ---
+class WiFiManager;                  // forward declare class
+void apModeCallback(WiFiManager*);  // forward declare the callback signature
+
 #include <Arduino.h>
-#include <WiFiManager.h>
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <DNSServer.h>
+#include <WebServer.h>      // include these BEFORE WiFiManager.h
+#include <WiFiManager.h>    // tzapu/WiFiManager
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <time.h>
 #include <lvgl.h>
+#include "lvgl/src/drivers/display/tft_espi/lv_tft_espi.h"
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 #include <Preferences.h>
 #include "esp_system.h"
-
+#include "config/screen_select.h"
 #define XPT2046_IRQ 36   // T_IRQ
 #define XPT2046_MOSI 32  // T_DIN
 #define XPT2046_MISO 39  // T_OUT
 #define XPT2046_CLK 25   // T_CLK
 #define XPT2046_CS 33    // T_CS
-#include "config/screen_select.h"
 #define LCD_BACKLIGHT_PIN AURA_TFT_BL
 #define SCREEN_WIDTH AURA_TFT_WIDTH
 #define SCREEN_HEIGHT AURA_TFT_HEIGHT
