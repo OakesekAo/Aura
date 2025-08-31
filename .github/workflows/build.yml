@@ -14,6 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         target: [ "28_ILI9341", "24_ILI9341", "24_ST7789" ]
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,7 +26,6 @@ jobs:
         run: |
           arduino-cli core update-index
           arduino-cli core install esp32:esp32
-          # Install libs per Aura README (note: HttpClient here, not ArduinoHttpClient)
           arduino-cli lib install \
             "ArduinoJson@7.4.1" \
             "HttpClient@2.2.0" \
@@ -37,44 +37,45 @@ jobs:
 
       - name: Select TFT_eSPI User_Setup for ${{ matrix.target }}
         run: |
+          set -e
           mkdir -p "$HOME/Arduino/libraries/TFT_eSPI"
           case "${{ matrix.target }}" in
             28_ILI9341) SRC="TFT_eSPI/User_Setup_AURA_28_ILI9341.h" ;;
             24_ILI9341) SRC="TFT_eSPI/User_Setup_AURA_24_ILI9341.h" ;;
             24_ST7789)  SRC="TFT_eSPI/User_Setup_AURA_24_ST7789.h" ;;
           esac
+          # If your files are actually in a different folder (e.g. config/tft/), change SRC accordingly.
+          ls -l "$SRC"
           cp "$SRC" "$HOME/Arduino/libraries/TFT_eSPI/User_Setup.h"
-          echo "Using $SRC → \$HOME/Arduino/libraries/TFT_eSPI/User_Setup.h"
+          echo "Using $SRC → $HOME/Arduino/libraries/TFT_eSPI/User_Setup.h"
 
       - name: Compile ${{ matrix.target }}
         run: |
+          set -e
           EXTRA_FLAGS=""
           if [ "${{ matrix.target }}" = "24_ILI9341" ]; then EXTRA_FLAGS='-DAURA_SCREEN=24_ILI9341'; fi
           if [ "${{ matrix.target }}" = "24_ST7789" ]; then EXTRA_FLAGS='-DAURA_SCREEN=24_ST7789'; fi
-          # Build; export to a clean, known dir to simplify artifact collection
           OUT="out/${{ matrix.target }}"
           mkdir -p "$OUT"
+          test -f aura/aura.ino || { echo "::error ::missing aura/aura.ino"; exit 1; }
           arduino-cli compile \
             --fqbn esp32:esp32:esp32 \
             --board-options PartitionScheme=huge_app \
             --build-property "build.extra_flags=$EXTRA_FLAGS" \
             --export-binaries \
             --output-dir "$OUT" \
-            aura/weather.ino
+            aura
 
       - name: Collect artifacts ${{ matrix.target }}
         run: |
           set -e
           OUT="out/${{ matrix.target }}"
           mkdir -p "dist/${{ matrix.target }}"
-          # app.bin (sketch), bootloader.bin, partitions.bin should be in $OUT after --export-binaries
           cp $(find "$OUT" -maxdepth 1 -type f -name "*.bin" ! -name "*partitions*.bin" ! -name "*bootloader*.bin" | head -n1) "dist/${{ matrix.target }}/app.bin"
           cp $(find "$OUT" -maxdepth 1 -type f -name "*bootloader*.bin" | head -n1) "dist/${{ matrix.target }}/bootloader.bin"
           cp $(find "$OUT" -maxdepth 1 -type f -name "*partitions*.bin" | head -n1) "dist/${{ matrix.target }}/partitions.bin"
-          # boot_app0 from the esp32 core
           CORE="$HOME/.arduino15/packages/esp32/hardware/esp32/$(ls $HOME/.arduino15/packages/esp32/hardware/esp32 | tail -n1)"
           cp "$CORE/tools/partitions/boot_app0.bin" "dist/${{ matrix.target }}/boot_app0.bin"
-          # Guard: fail if any file is empty
           for f in dist/${{ matrix.target }}/*.bin; do
             [ -s "$f" ] || { echo "::error file=$f::empty bin"; exit 1; }
           done
