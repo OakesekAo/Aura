@@ -1,0 +1,49 @@
+name: Aura Arduino CLI Build
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        screen:
+          - 28_ILI9341
+          - 24_ILI9341
+          - 24_ST7789
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Arduino CLI
+        uses: arduino/setup-arduino-cli@v1
+      - name: Install ESP32 core
+        run: arduino-cli core install esp32:esp32
+      - name: Install libraries
+        run: |
+          arduino-cli lib install "ArduinoJson" "HTTPClient" "TFT_eSPI" "WiFiManager" "XPT2046_Touchscreen" "lvgl"
+      - name: Prepare TFT_eSPI User_Setup
+        run: |
+          if [[ "${{ matrix.screen }}" == "28_ILI9341" ]]; then
+            cp TFT_eSPI/User_Setup_AURA_28_ILI9341.h $HOME/.arduino15/packages/esp32/hardware/esp32/*/libraries/TFT_eSPI/User_Setup.h
+          elif [[ "${{ matrix.screen }}" == "24_ILI9341" ]]; then
+            cp TFT_eSPI/User_Setup_AURA_24_ILI9341.h $HOME/.arduino15/packages/esp32/hardware/esp32/*/libraries/TFT_eSPI/User_Setup.h
+          else
+            cp TFT_eSPI/User_Setup_AURA_24_ST7789.h $HOME/.arduino15/packages/esp32/hardware/esp32/*/libraries/TFT_eSPI/User_Setup.h
+          fi
+      - name: Compile Aura
+        run: |
+          if [[ "${{ matrix.screen }}" == "28_ILI9341" ]]; then
+            arduino-cli compile --fqbn esp32:esp32:esp32 --build-properties build.partitions=huge_app aura/weather.ino --output-dir ./bin/aura/2.8/
+          else
+            arduino-cli compile --fqbn esp32:esp32:esp32 --build-properties build.partitions=huge_app --build-properties build.extra_flags="-DAURA_SCREEN=${{ matrix.screen }}" aura/weather.ino --output-dir ./bin/aura/2.4/
+          fi
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aura-${{ matrix.screen }}-bin
+          path: |
+            ./bin/aura/2.8/*.bin
+            ./bin/aura/2.4/*.bin
