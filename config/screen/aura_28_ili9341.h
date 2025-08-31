@@ -1,16 +1,4 @@
-// Aura 2.8" ILI9341 screen config
-#define AURA_TFT_DRIVER ILI9341_2_DRIVER
-#define AURA_TFT_WIDTH  240
+#pragma once
+#define SCREEN_WIDTH  320
+#define SCREEN_HEIGHT 240
 #define AURA_TFT_HEIGHT 320
-#define AURA_TFT_BL   21
-#define AURA_TFT_BACKLIGHT_ON HIGH
-#define AURA_TFT_MISO 12
-#define AURA_TFT_MOSI 13
-#define AURA_TFT_SCLK 14
-#define AURA_TFT_CS   15
-#define AURA_TFT_DC    2
-#define AURA_TFT_RST  -1
-#define AURA_TOUCH_CS 33
-#define AURA_SPI_FREQUENCY 55000000
-#define AURA_SPI_TOUCH_FREQUENCY 2500000
-#define AURA_USE_HSPI_PORT 1
