@@ -2,11 +2,12 @@
 #include "wifi_manager_helpers.h"
 
 #if AURA_ENABLE_WIFI
-    #include <WiFiManager.h>
     #include <Arduino.h>
+    #include <WiFiManager.h>
 
     static void apModeCallback(WiFiManager* mgr) {
-        (void)mgr; // optional: add logging/LED here
+        (void)mgr;
+        // optional: Serial.println("AP mode started");
     }
 
     void wifi_begin_portal(const char* ssid) {

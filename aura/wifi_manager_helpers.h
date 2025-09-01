@@ -8,10 +8,10 @@
 extern "C" {
 #endif
 
-// Start/configure WiFi via captive portal
+// Start/configure WiFi via captive portal (no-op if AURA_ENABLE_WIFI=0)
 void wifi_begin_portal(const char* ssid);
 
-// Factory-reset WiFi credentials
+// Factory-reset WiFi credentials (no-op if AURA_ENABLE_WIFI=0)
 void wifi_reset_all(void);
 
 #ifdef __cplusplus
