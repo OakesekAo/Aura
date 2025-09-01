@@ -1,10 +1,6 @@
 
-// --- Make Arduino's auto-prototype happy with WiFiManager types ---
-// trigger CI
-
 #include <Arduino.h>
 #include <WiFi.h>
-#include <WiFiClient.h>
 #include <WebServer.h>
 #include <DNSServer.h>
 #include <WiFiManager.h>
@@ -12,20 +8,14 @@
 #include <ArduinoJson.h>
 #include <time.h>
 #include <lvgl.h>
-// Use local TFT_eSPI driver shim for LVGL
-#include "drivers/tft_espi_driver.h"
-
-#include "drivers/tft_espi_driver.h"
-
-// Forward declaration must come after WiFiManager.h include:
-void apModeCallback(WiFiManager* mgr);
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 #include <Preferences.h>
 #include "esp_system.h"
 
+void apModeCallback(WiFiManager* mgr);
+
 #include "config/screen_select.h"
-// Forward declare callback so Arduino's auto-prototype sees the type
 #define XPT2046_IRQ 36   // T_IRQ
 #define XPT2046_MOSI 32  // T_DIN
 #define XPT2046_MISO 39  // T_OUT

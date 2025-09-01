@@ -78,7 +78,7 @@ jobs:
             --fqbn esp32:esp32:esp32 \
             --board-options PartitionScheme=huge_app \
             --libraries /home/runner/Arduino/libraries \
-            --build-property "build.extra_flags=$EXTRA_FLAGS -DLV_CONF_SKIP -DLV_USE_TFT_ESPI=0" \
+            --build-property "build.extra_flags=$EXTRA_FLAGS -DLV_CONF_SKIP -DLV_USE_TFT_ESPI=1" \
             --export-binaries \
             --output-dir "$OUT" \
             aura
