@@ -1,5 +1,6 @@
 
 // --- Make Arduino's auto-prototype happy with WiFiManager types ---
+// trigger CI
 
 #include <Arduino.h>
 #include <WiFi.h>
