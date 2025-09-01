@@ -20,6 +20,7 @@
 
 #include "config/screen_select.h"
 void apModeCallback(WiFiManager* mgr);
+void apModeCallback(WiFiManager* mgr);
 // Forward declare callback so Arduino's auto-prototype sees the type
 #define XPT2046_IRQ 36   // T_IRQ
 #define XPT2046_MOSI 32  // T_DIN
