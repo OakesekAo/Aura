@@ -16,7 +16,7 @@ static void my_flush_cb(lv_display_t* disp, const lv_area_t* area, uint8_t* px_m
   lv_display_flush_ready(disp);
 }
 
-lv_display_t* lv_tft_espi_create(int32_t hor_res, int32_t ver_res, void* buf, size_t buf_size) {
+lv_display_t* lv_aura_tft_espi_create(int32_t hor_res, int32_t ver_res, void* buf, size_t buf_size) {
   tft.begin();
   // Rotation: 1 suits 320x240 landscape on many ILI9341 boards; adjust later per screen config if needed
   tft.setRotation(1);

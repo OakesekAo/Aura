@@ -458,7 +458,7 @@ void setup() {
   touchscreen.begin(touchscreenSPI);
   touchscreen.setRotation(0);
 
-  lv_display_t *disp = lv_tft_espi_create(SCREEN_WIDTH, SCREEN_HEIGHT, draw_buf, sizeof(draw_buf));
+  lv_display_t *disp = lv_aura_tft_espi_create(SCREEN_WIDTH, SCREEN_HEIGHT, draw_buf, sizeof(draw_buf));
   lv_indev_t *indev = lv_indev_create();
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
   lv_indev_set_read_cb(indev, touchscreen_read);
