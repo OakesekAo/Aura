@@ -7,9 +7,6 @@
 #include <WebServer.h>
 #include <DNSServer.h>
 #include <WiFiManager.h>
-#include <DNSServer.h>
-#include <WebServer.h>      // include these BEFORE WiFiManager.h
-#include <WiFiManager.h>    // tzapu/WiFiManager
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <time.h>
@@ -17,12 +14,10 @@
 // Use local TFT_eSPI driver shim for LVGL
 #include "drivers/tft_espi_driver.h"
 
+#include "drivers/tft_espi_driver.h"
+
 // Forward declaration must come after WiFiManager.h include:
 void apModeCallback(WiFiManager* mgr);
-
-// single forward declaration (keep this ONE, delete all others)
-// single forward declaration (keep this ONE, delete all others)
-// single forward declaration (keep this ONE, delete all others)
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 #include <Preferences.h>
