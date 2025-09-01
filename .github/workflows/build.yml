@@ -65,9 +65,12 @@ jobs:
       - name: Compile ${{ matrix.target }}
         run: |
           set -euxo pipefail
-          EXTRA_FLAGS=""
-          if [ "${{ matrix.target }}" = "24_ILI9341" ]; then EXTRA_FLAGS='-DAURA_SCREEN_24_ILI9341'; fi
-          if [ "${{ matrix.target }}" = "24_ST7789" ]; then EXTRA_FLAGS='-DAURA_SCREEN_24_ST7789'; fi
+          case "${{ matrix.target }}" in
+            "24_ILI9341") EXTRA_FLAGS='-DAURA_SCREEN_24_ILI9341' ;;
+            "24_ST7789")  EXTRA_FLAGS='-DAURA_SCREEN_24_ST7789'  ;;
+            "28_ILI9341") EXTRA_FLAGS='-DAURA_SCREEN_28_ILI9341' ;;
+            *) echo "::error ::unknown matrix.target=${{ matrix.target }}"; exit 1 ;;
+          esac
           OUT="out/${{ matrix.target }}"
           mkdir -p "$OUT"
           test -f aura/aura.ino || { echo "::error ::missing aura/aura.ino"; exit 1; }
