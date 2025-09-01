@@ -1,11 +1,15 @@
-#ifndef AURA_WIFI_INCLUDE_GUARD
-#define AURA_WIFI_INCLUDE_GUARD
+// ==== Aura required config & headers (must be first) ====
+#include "config/screen_select.h"   // defines AURA_TFT_WIDTH, AURA_TFT_HEIGHT, AURA_TFT_BL
+
+#include <WiFiManager.h>            // must be visible before any prototype or variable using WiFiManager
+void apModeCallback(WiFiManager* mgr);  // single forward declaration AFTER including WiFiManager
+// =========================================================
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
 #include <WiFiManager.h>
-void apModeCallback(WiFiManager* mgr);  // keep a single prototype visible early
 #endif
 
 #include <WiFiClient.h>
@@ -18,7 +22,6 @@ void apModeCallback(WiFiManager* mgr);  // keep a single prototype visible early
 #include <XPT2046_Touchscreen.h>
 #include <Preferences.h>
 #include "esp_system.h"
-#include "config/screen_select.h"
 
 #define XPT2046_IRQ 36   // T_IRQ
 #define XPT2046_MOSI 32  // T_DIN
@@ -746,7 +749,7 @@ static void reset_wifi_event_handler(lv_event_t *e) {
   lv_obj_t *btn_no = lv_msgbox_add_footer_button(mbox, strings->cancel);
   lv_obj_set_style_text_font(btn_no, get_font_12(), 0);
   lv_obj_t *btn_yes = lv_msgbox_add_footer_button(mbox, strings->reset);
-  lv_obj_set_style_text_font(btn_yes, get_font_12(), 0);
+  lv_obj_set_style_text_font(btn_yes, get_font_12, 0);
 
   lv_obj_set_style_bg_color(btn_yes, lv_palette_main(LV_PALETTE_RED), LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_set_style_bg_color(btn_yes, lv_palette_darken(LV_PALETTE_RED, 1), LV_PART_MAIN | LV_STATE_PRESSED);
