@@ -1,16 +1,21 @@
+
 #include "wifi_manager_helpers.h"
-#include "config/screen_select.h"
+
+#if AURA_ENABLE_WIFI
+#include <Arduino.h>
 
 void apModeCallback(WiFiManager* mgr) {
-    // Splash screen logic (move from aura.ino)
-    extern void wifi_splash_screen();
-    extern void flush_wifi_splashscreen();
-    wifi_splash_screen();
-    flush_wifi_splashscreen();
+    (void)mgr; // hook for logging/LED if you want
 }
 
-void setup_wifi_manager(const char* ssid) {
+void wifi_begin_portal(const char* ssid) {
     WiFiManager wm;
     wm.setAPCallback(apModeCallback);
-    wm.autoConnect(ssid);
+    wm.autoConnect((ssid && ssid[0]) ? ssid : "Aura");
 }
+
+void wifi_reset_all() {
+    WiFiManager wm;
+    wm.resetSettings();
+}
+#endif

@@ -1,3 +1,10 @@
+#ifndef AURA_ENABLE_WIFI
+#define AURA_ENABLE_WIFI 1
+#endif
+#include <WiFiManager.h>
+#ifndef AURA_ENABLE_WIFI
+#define AURA_ENABLE_WIFI 1
+#endif
 #include "config/screen_select.h"
 #include <WiFiClient.h>
 #include <HTTPClient.h>
@@ -753,8 +760,7 @@ static void reset_wifi_event_handler(lv_event_t *e) {
 static void reset_confirm_yes_cb(lv_event_t *e) {
   lv_obj_t *mbox = (lv_obj_t *)lv_event_get_user_data(e);
   Serial.println("Clearing Wi-Fi creds and rebooting");
-  WiFiManager wm;
-  wm.resetSettings();
+  wifi_reset_all();
   delay(100);
   esp_restart();
 }
