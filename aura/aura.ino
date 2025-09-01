@@ -1,10 +1,13 @@
-
-
-#include <Arduino.h>
+#ifndef AURA_WIFI_INCLUDES
+#define AURA_WIFI_INCLUDES
+class WiFiManager;               // forward decl for early prototypes
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
 #include <WiFiManager.h>
+#endif
+
+#include <Arduino.h>
 #include <WiFiClient.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
