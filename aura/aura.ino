@@ -1,30 +1,24 @@
 
-
-// Forward declare WiFiManager so we can reference it in prototypes before includes
-class WiFiManager;
-void apModeCallback(WiFiManager* mgr);
-
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
 #include <WiFiManager.h>
+
+#include <WiFiClient.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <time.h>
 #include <lvgl.h>
+#include "drivers/tft_espi_driver.h"
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 #include <Preferences.h>
 #include "esp_system.h"
-
-
-void apModeCallback(WiFiManager* mgr);
-
-// Forward declare WiFiManager so we can reference it in prototypes before includes
-class WiFiManager;
-
 #include "config/screen_select.h"
+
+void apModeCallback(WiFiManager*);
+
 #define XPT2046_IRQ 36   // T_IRQ
 #define XPT2046_MOSI 32  // T_DIN
 #define XPT2046_MISO 39  // T_OUT
@@ -463,7 +457,7 @@ void setup() {
   touchscreen.begin(touchscreenSPI);
   touchscreen.setRotation(0);
 
-  lv_display_t *disp = lv_tft_espi_create(SCREEN_WIDTH, SCREEN_HEIGHT, draw_buf, sizeof(draw_buf));
+  lv_display_t *disp = lv_aura_tft_espi_create(SCREEN_WIDTH, SCREEN_HEIGHT, draw_buf, sizeof(draw_buf));
   lv_indev_t *indev = lv_indev_create();
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
   lv_indev_set_read_cb(indev, touchscreen_read);
