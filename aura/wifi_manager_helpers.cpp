@@ -8,14 +8,14 @@ static void apModeCallback(WiFiManager *mgr) {
 }
 
 extern "C" {
-void setup_wifi_manager(const char *ap_ssid) {
+void setup_wifi_manager(const char* ap_ssid) {
     WiFiManager wm;
     wm.setAPCallback(apModeCallback);
-    const char *ssid = (ap_ssid && *ap_ssid) ? ap_ssid : "Aura";
-    wm.autoConnect(ssid);
+    // blocking connect; returns bool, but we don't need it for CI compile
+    (void)wm.autoConnect(ap_ssid);
 }
 
-void wifi_reset_settings(void) {
+void reset_wifi_settings() {
     WiFiManager wm;
     wm.resetSettings();
 }
