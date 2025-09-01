@@ -1,4 +1,9 @@
 
+
+// Forward declare WiFiManager so we can reference it in prototypes before includes
+class WiFiManager;
+void apModeCallback(WiFiManager* mgr);
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
@@ -15,6 +20,9 @@
 
 
 void apModeCallback(WiFiManager* mgr);
+
+// Forward declare WiFiManager so we can reference it in prototypes before includes
+class WiFiManager;
 
 #include "config/screen_select.h"
 #define XPT2046_IRQ 36   // T_IRQ
