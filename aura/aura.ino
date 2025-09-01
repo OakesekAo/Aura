@@ -1,13 +1,13 @@
-#ifndef AURA_WIFI_INCLUDES
-#define AURA_WIFI_INCLUDES
-class WiFiManager;               // forward decl for early prototypes
+#ifndef AURA_WIFI_INCLUDE_GUARD
+#define AURA_WIFI_INCLUDE_GUARD
+#include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
 #include <WiFiManager.h>
+void apModeCallback(WiFiManager* mgr);  // keep a single prototype visible early
 #endif
 
-#include <Arduino.h>
 #include <WiFiClient.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
@@ -19,8 +19,6 @@ class WiFiManager;               // forward decl for early prototypes
 #include <Preferences.h>
 #include "esp_system.h"
 #include "config/screen_select.h"
-
-void apModeCallback(WiFiManager* mgr);
 
 #define XPT2046_IRQ 36   // T_IRQ
 #define XPT2046_MOSI 32  // T_DIN
