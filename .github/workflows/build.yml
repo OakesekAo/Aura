@@ -48,10 +48,6 @@ jobs:
             echo "::warning ::No ./config directory found"
           fi
 
-          else
-            echo "::error ::No ./lvgl/src directory found in repo"
-            exit 1
-          fi
 
       - name: Select TFT_eSPI User_Setup for ${{ matrix.target }}
         run: |
