@@ -13,14 +13,15 @@
 #include <lvgl.h>
 // Use local TFT_eSPI driver shim for LVGL
 #include "drivers/tft_espi_driver.h"
+
+// single forward declaration (keep this ONE, delete all others)
+void apModeCallback(WiFiManager* mgr);
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 #include <Preferences.h>
 #include "esp_system.h"
 
 #include "config/screen_select.h"
-void apModeCallback(WiFiManager* mgr);
-void apModeCallback(WiFiManager* mgr);
 // Forward declare callback so Arduino's auto-prototype sees the type
 #define XPT2046_IRQ 36   // T_IRQ
 #define XPT2046_MOSI 32  // T_DIN
