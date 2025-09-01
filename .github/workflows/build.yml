@@ -37,6 +37,15 @@ jobs:
             "lvgl@9.2.2"
           arduino-cli lib list
 
+
+      - name: Debug: Show WiFiManager library contents and arduino-cli lib list
+        run: |
+          set -euxo pipefail
+          echo "Listing WiFiManager library directory:"
+          ls -l /home/runner/Arduino/libraries/WiFiManager || echo "WiFiManager library not found!"
+          echo "\nListing arduino-cli libraries:"
+          arduino-cli lib list
+
       - name: Make config headers visible to the sketch
         run: |
           set -euxo pipefail
