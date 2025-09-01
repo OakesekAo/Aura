@@ -17,9 +17,8 @@
 #include <XPT2046_Touchscreen.h>
 #include <Preferences.h>
 #include "esp_system.h"
-#include "config/screen_select.h"
 
-class WiFiManager;
+#include "config/screen_select.h"
 void apModeCallback(WiFiManager*);
 
 // Forward declare callback so Arduino's auto-prototype sees the type
