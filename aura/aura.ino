@@ -1,6 +1,6 @@
 
+void apModeCallback(WiFiManager*);  // forward declare the callback signature
 // --- Make Arduino's auto-prototype happy with WiFiManager types ---
-class WiFiManager;                  // forward declare class
 void apModeCallback(WiFiManager*);  // forward declare the callback signature
 
 #include <Arduino.h>
