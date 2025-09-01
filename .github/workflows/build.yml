@@ -48,16 +48,6 @@ jobs:
             echo "::warning ::No ./config directory found"
           fi
 
-      - name: Make bundled LVGL visible to the sketch
-        run: |
-          set -euxo pipefail
-          if [ -d lvgl/src ]; then
-            mkdir -p aura/lvgl
-            rsync -a lvgl/ aura/lvgl/
-            echo "Copied ./lvgl -> ./aura/lvgl"
-            # sanity: ensure the driver header exists after copy
-            test -f aura/lvgl/src/drivers/display/tft_espi/lv_tft_espi.h || \
-              { echo "::error ::lv_tft_espi.h not found under aura/lvgl/src/drivers/display/tft_espi/"; exit 1; }
           else
             echo "::error ::No ./lvgl/src directory found in repo"
             exit 1

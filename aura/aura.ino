@@ -13,7 +13,8 @@ void apModeCallback(WiFiManager*);  // forward declare the callback signature
 #include <ArduinoJson.h>
 #include <time.h>
 #include <lvgl.h>
-#include "drivers/display/tft_espi/lv_tft_espi.h"
+// Use local TFT_eSPI driver shim for LVGL
+#include "drivers/tft_espi_driver.h"
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 #include <Preferences.h>
