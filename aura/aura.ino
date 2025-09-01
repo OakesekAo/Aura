@@ -16,6 +16,8 @@
 
 // single forward declaration (keep this ONE, delete all others)
 void apModeCallback(WiFiManager* mgr);
+
+// single forward declaration (keep this ONE, delete all others)
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 #include <Preferences.h>
