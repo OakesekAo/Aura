@@ -1,10 +1,10 @@
 
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
 #include <WiFiManager.h>
-
 #include <WiFiClient.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
@@ -17,7 +17,7 @@
 #include "esp_system.h"
 #include "config/screen_select.h"
 
-void apModeCallback(WiFiManager*);
+void apModeCallback(WiFiManager* mgr);
 
 #define XPT2046_IRQ 36   // T_IRQ
 #define XPT2046_MOSI 32  // T_DIN
