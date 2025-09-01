@@ -757,7 +757,7 @@ static void reset_wifi_event_handler(lv_event_t *e) {
 static void reset_confirm_yes_cb(lv_event_t *e) {
   lv_obj_t *mbox = (lv_obj_t *)lv_event_get_user_data(e);
   Serial.println("Clearing Wi-Fi creds and rebooting");
-  wifi_reset_all();
+  wifi_reset_settings();
   delay(100);
   esp_restart();
 }
