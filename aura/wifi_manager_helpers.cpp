@@ -11,8 +11,9 @@ extern "C" {
 void setup_wifi_manager(const char* ap_ssid) {
     WiFiManager wm;
     wm.setAPCallback(apModeCallback);
-    // blocking connect; returns bool, but we don't need it for CI compile
-    (void)wm.autoConnect(ap_ssid);
+    const char* ssid = (ap_ssid && *ap_ssid) ? ap_ssid : "Aura";
+    // Attempt to connect; if it fails, starts a captive portal with given SSID
+    (void)wm.autoConnect(ssid);
 }
 
 void reset_wifi_settings() {
@@ -20,3 +21,19 @@ void reset_wifi_settings() {
     wm.resetSettings();
 }
 } // extern "C"
+#ifndef AURA_ENABLE_WIFI
+#define AURA_ENABLE_WIFI 1
+#endif
+
+#if AURA_ENABLE_WIFI
+    #include <WiFiManager.h>
+
+    // Keep callback internal to this TU so the header never mentions WiFiManager
+    static void apModeCallback(WiFiManager* mgr) {
+        (void)mgr; // placeholder; add logging if desired
+    }
+
+#else
+    void setup_wifi_manager(const char*) {}
+    void reset_wifi_settings() {}
+#endif
