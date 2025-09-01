@@ -36,8 +36,6 @@ jobs:
             "TFT_eSPI@2.5.43" \
             "lvgl@9.2.2"
           arduino-cli lib list
-
-
       - name: Debug: Show WiFiManager library contents and arduino-cli lib list
         run: |
           set -euxo pipefail
