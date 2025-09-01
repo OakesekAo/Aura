@@ -1,10 +1,7 @@
 #ifndef AURA_ENABLE_WIFI
 #define AURA_ENABLE_WIFI 1
 #endif
-#include <WiFiManager.h>
-#ifndef AURA_ENABLE_WIFI
-#define AURA_ENABLE_WIFI 1
-#endif
+#include "wifi_manager_helpers.h"
 #include "config/screen_select.h"
 #include <WiFiClient.h>
 #include <HTTPClient.h>
