@@ -1,13 +1,4 @@
 #pragma once
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-// Public helpers. Keep header free of WiFiManager-dependent types/symbols.
+// Plain C++ prototypes; header must not depend on WiFiManager types.
 void setup_wifi_manager(const char *ap_ssid);
 void wifi_reset_settings(void);
-
-#ifdef __cplusplus
-}
-#endif
