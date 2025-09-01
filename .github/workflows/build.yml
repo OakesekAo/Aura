@@ -9,7 +9,6 @@ on:
 
 jobs:
   build:
-    name: build (${{ matrix.target }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -28,12 +27,15 @@ jobs:
           set -euxo pipefail
           arduino-cli core update-index
           arduino-cli core install esp32:esp32@2.0.17
+          # Pinned library versions match Aura README
           arduino-cli lib install \
             "ArduinoJson@7.4.1" \
+            "HttpClient@2.2.0" \
             "WiFiManager@2.0.17" \
             "XPT2046_Touchscreen@1.4" \
             "TFT_eSPI@2.5.43" \
             "lvgl@9.2.2"
+          arduino-cli lib list
 
       - name: Make config headers visible to the sketch
         run: |
@@ -46,6 +48,7 @@ jobs:
             echo "::warning ::No ./config directory found"
           fi
 
+
       - name: Select TFT_eSPI User_Setup for ${{ matrix.target }}
         run: |
           set -euxo pipefail
@@ -53,11 +56,9 @@ jobs:
           case "${{ matrix.target }}" in
             28_ILI9341) SRC="TFT_eSPI/User_Setup_AURA_28_ILI9341.h" ;;
             24_ILI9341) SRC="TFT_eSPI/User_Setup_AURA_24_ILI9341.h" ;;
-            24_ST7789)  SRC="TFT_eSPI/User_Setup_AURA_24_ST7789.h" ;;
+            24_ST7789)  SRC="TFT_eSPI/User_Setup_AURA_24_ST7789.h"  ;;
           esac
-          if [ ! -f "$SRC" ]; then
-            echo "::error ::Missing $SRC in repo"; exit 1
-          fi
+          test -f "$SRC" || { echo "::error ::Missing $SRC"; exit 1; }
           cp "$SRC" "$HOME/Arduino/libraries/TFT_eSPI/User_Setup.h"
           echo "Using $SRC → \$HOME/Arduino/libraries/TFT_eSPI/User_Setup.h"
 
@@ -65,19 +66,16 @@ jobs:
         run: |
           set -euxo pipefail
           EXTRA_FLAGS=""
-          # screen_select.h uses symbol-style flags
           if [ "${{ matrix.target }}" = "24_ILI9341" ]; then EXTRA_FLAGS='-DAURA_SCREEN_24_ILI9341'; fi
           if [ "${{ matrix.target }}" = "24_ST7789" ]; then EXTRA_FLAGS='-DAURA_SCREEN_24_ST7789'; fi
-
           OUT="out/${{ matrix.target }}"
           mkdir -p "$OUT"
           test -f aura/aura.ino || { echo "::error ::missing aura/aura.ino"; exit 1; }
-
-          # Use LVGL built-in defaults and plain TFT_eSPI (no LVGL TFT_eSPI driver)
           arduino-cli compile \
             --fqbn esp32:esp32:esp32 \
             --board-options PartitionScheme=huge_app \
-            --build-property "build.extra_flags=$EXTRA_FLAGS -DLV_CONF_SKIP -DLV_USE_TFT_ESPI=1" \
+            --build-property "build.extra_flags=$EXTRA_FLAGS -DLV_CONF_SKIP -DLV_USE_TFT_ESPI=0" \
+            --build-property "compiler.cpp.extra_flags=-include preinclude.h" \
             --export-binaries \
             --output-dir "$OUT" \
             aura
@@ -87,15 +85,14 @@ jobs:
           set -euxo pipefail
           OUT="out/${{ matrix.target }}"
           mkdir -p "dist/${{ matrix.target }}"
+          # app.bin, bootloader.bin, partitions.bin from export-binaries
           cp $(find "$OUT" -maxdepth 1 -type f -name "*.bin" ! -name "*partitions*.bin" ! -name "*bootloader*.bin" | head -n1) "dist/${{ matrix.target }}/app.bin"
-          cp $(find "$OUT" -maxdepth 1 -type f -name "*bootloader*.bin" | head -n1) "dist/${{ matrix.target }}/bootloader.bin" || true
-          cp $(find "$OUT" -maxdepth 1 -type f -name "*partitions*.bin" | head -n1) "dist/${{ matrix.target }}/partitions.bin" || true
-
-          CORE="$HOME/.arduino15/packages/esp32/hardware/esp32/$(ls $HOME/.arduino15/packages/esp32/hardware/esp32 | tail -n1)"
-          if [ -f "$CORE/tools/partitions/boot_app0.bin" ]; then
-            cp "$CORE/tools/partitions/boot_app0.bin" "dist/${{ matrix.target }}/boot_app0.bin"
-          fi
-
+          cp $(find "$OUT" -maxdepth 1 -type f -name "*bootloader*.bin" | head -n1) "dist/${{ matrix.target }}/bootloader.bin"
+          cp $(find "$OUT" -maxdepth 1 -type f -name "*partitions*.bin" | head -n1) "dist/${{ matrix.target }}/partitions.bin"
+          # boot_app0.bin from ESP32 core
+          CORE="$(ls -d $HOME/.arduino15/packages/esp32/hardware/esp32/* | sort -V | tail -n1)"
+          cp "$CORE/tools/partitions/boot_app0.bin" "dist/${{ matrix.target }}/boot_app0.bin"
+          # Guard: fail if any file is empty
           for f in dist/${{ matrix.target }}/*.bin; do
             [ -s "$f" ] || { echo "::error file=$f::empty bin"; exit 1; }
           done
