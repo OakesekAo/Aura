@@ -9,7 +9,6 @@ void apModeCallback(WiFiManager* mgr);  // single forward declaration AFTER incl
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
-#include <WiFiManager.h>
 #include <WiFiClient.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
