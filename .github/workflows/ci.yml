@@ -7,10 +7,6 @@ on:
       branches:
         - main
         - feat/24-ci-clean
-    commit:
-      branches:
-        - main
-        - feat/24-ci-clean
   pull_request:
 
 jobs:
