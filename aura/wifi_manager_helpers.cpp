@@ -1,39 +1,30 @@
 
 
-#include "wifi_manager_helpers.h"
-#include <WiFiManager.h>
 
-static void apModeCallback(WiFiManager *mgr) {
-    (void)mgr; // optional: add your AP-mode logging, LED flash, etc.
+#include "wifi_manager_helpers.h"
+
+#if AURA_ENABLE_WIFI
+    #include <WiFi.h>
+    #include <WiFiManager.h>
+
+// Local-only callback; not exposed in headers
+static void apModeCallback(WiFiManager* mgr) {
+    (void)mgr; // no-op for now
 }
 
-extern "C" {
-void setup_wifi_manager(const char* ap_ssid) {
+void setup_wifi_manager(const char* captive_ssid) {
+    WiFi.mode(WIFI_STA);
     WiFiManager wm;
     wm.setAPCallback(apModeCallback);
-    const char* ssid = (ap_ssid && *ap_ssid) ? ap_ssid : "Aura";
-    // Attempt to connect; if it fails, starts a captive portal with given SSID
-    (void)wm.autoConnect(ssid);
+    const char* ssid = (captive_ssid && *captive_ssid) ? captive_ssid : "Aura";
+    (void)wm.autoConnect(ssid); // ignore result in CI build
 }
 
-void reset_wifi_settings() {
+void reset_wifi_settings(void) {
     WiFiManager wm;
     wm.resetSettings();
 }
-} // extern "C"
-#ifndef AURA_ENABLE_WIFI
-#define AURA_ENABLE_WIFI 1
-#endif
-
-#if AURA_ENABLE_WIFI
-    #include <WiFiManager.h>
-
-    // Keep callback internal to this TU so the header never mentions WiFiManager
-    static void apModeCallback(WiFiManager* mgr) {
-        (void)mgr; // placeholder; add logging if desired
-    }
-
 #else
-    void setup_wifi_manager(const char*) {}
-    void reset_wifi_settings() {}
+void setup_wifi_manager(const char*) {}
+void reset_wifi_settings(void)    {}
 #endif
