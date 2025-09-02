@@ -47,16 +47,16 @@ jobs:
 
           OUT="out/${{ matrix.target }}"
           mkdir -p "$OUT"
-          test -f aura/aura.ino || { echo "::error ::missing aura/aura.ino"; exit 1; }
+          test -f aura/weather.ino || { echo "::error ::missing aura/weather.ino"; exit 1; }
 
           arduino-cli compile \
-            --fqbn esp32:esp32:esp32 \
+            --fqbn esp32:esp32:esp32dev \
             --board-options PartitionScheme=huge_app \
             --build-property "build.extra_flags=$EXTRA_FLAGS -DLV_CONF_SKIP -DLV_USE_TFT_ESPI=0" \
             --build-property "compiler.cpp.extra_flags=-include preinclude.h" \
             --export-binaries \
             --output-dir "$OUT" \
-            aura
+            aura/weather.ino
 
       - name: Upload ${{ matrix.target }} firmware
         uses: actions/upload-artifact@v4
