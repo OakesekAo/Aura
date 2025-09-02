@@ -1,15 +1,22 @@
-// ---- Fallback: Wi-Fi reset helper for CI/builds ----
-// Some builds reference wifi_reset_settings(); define a local helper
-// that wipes stored credentials and reboots the ESP32.
-#ifndef AURA_HAVE_WIFI_RESET_SETTINGS
-void wifi_reset_settings() {
-  // Disconnect and erase credentials (remove from NVS)
-  WiFi.disconnect(true /* wifioff */, true /* erase */);
-  delay(150);
-  ESP.restart();
+#include <lvgl.h>
+#include <Arduino.h>
+#include <WiFi.h>
+#include "compat.h"
+/*__AURA_FWD_DECLS__*/
+#ifdef __cplusplus
+extern "C" {
+#endif
+struct _lv_event_t; typedef struct _lv_event_t lv_event_t;
+struct _lv_img_dsc_t; typedef struct _lv_img_dsc_t lv_img_dsc_t;
+extern void update_clock(void);
+static void daily_cb(lv_event_t*);
+static void hourly_cb(lv_event_t*);
+static void reset_confirm_yes_cb(lv_event_t*);
+static void reset_confirm_no_cb(lv_event_t*);
+static void change_location_event_cb(lv_event_t*);
+#ifdef __cplusplus
 }
 #endif
-// ---- end fallback helper ----
 #ifndef AURA_ENABLE_WIFI
 #define AURA_ENABLE_WIFI 1
 #endif
