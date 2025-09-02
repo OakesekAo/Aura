@@ -2,11 +2,9 @@ name: Build Aura (ESP32)
 
 on:
   push:
-    branches: [ feat/24-screen-support-ci ]
-    push:
-      branches:
-        - main
-        - feat/24-ci-clean
+    branches:
+      - main
+      - feat/24-ci-clean
   pull_request:
 
 jobs:
