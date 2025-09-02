@@ -1,3 +1,4 @@
+#include "forward_decls.h"
 /* __AURA_FWD_DECLS__ v2 */
 void update_clock(void);
 static void daily_cb(lv_event_t*);
