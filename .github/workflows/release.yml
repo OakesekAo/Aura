@@ -53,15 +53,18 @@ jobs:
       run: |
         curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
         echo "$HOME/bin" >> $GITHUB_PATH
+        export PATH="$HOME/bin:$PATH"
 
     - name: Install ESP32 platform
       run: |
+        export PATH="$HOME/bin:$PATH"
         arduino-cli config init
         arduino-cli core update-index
         arduino-cli core install esp32:esp32@2.0.17
 
     - name: Install required libraries
       run: |
+        export PATH="$HOME/bin:$PATH"
         arduino-cli lib install "TFT_eSPI@2.5.43"
         arduino-cli lib install "XPT2046_Touchscreen@1.4"
         arduino-cli lib install "ArduinoJson@7.0.4"
@@ -69,12 +72,14 @@ jobs:
 
     - name: Build firmware for ${{ matrix.variant.name }}
       run: |
+        export PATH="$HOME/bin:$PATH"
         arduino-cli compile --fqbn esp32:esp32:esp32 aura \
           --build-property "compiler.cpp.extra_flags=-D${{ matrix.variant.define }}" \
           --output-dir build/${{ matrix.variant.name }}
 
     - name: Extract ESP32 system binaries
       run: |
+        export PATH="$HOME/bin:$PATH"
         # Find the ESP32 core path
         ESP32_PATH=$(arduino-cli core list | grep esp32:esp32 | awk '{print $NF}')
         
