@@ -50,33 +50,33 @@ jobs:
           ${{ runner.os }}-arduino-
 
     - name: Setup Arduino CLI
-      run: |
-        curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
-        echo "$HOME/bin" >> $GITHUB_PATH
+      uses: arduino/setup-arduino-cli@v1
+      with:
+        version: 'latest'
 
     - name: Install ESP32 platform
       run: |
-        $HOME/bin/arduino-cli config init
-        $HOME/bin/arduino-cli core update-index
-        $HOME/bin/arduino-cli core install esp32:esp32@2.0.17
+        arduino-cli config init
+        arduino-cli core update-index
+        arduino-cli core install esp32:esp32@2.0.17
 
     - name: Install required libraries
       run: |
-        $HOME/bin/arduino-cli lib install "TFT_eSPI@2.5.43"
-        $HOME/bin/arduino-cli lib install "XPT2046_Touchscreen@1.4"
-        $HOME/bin/arduino-cli lib install "ArduinoJson@7.0.4"
-        $HOME/bin/arduino-cli lib install "Preferences@2.1.0"
+        arduino-cli lib install "TFT_eSPI@2.5.43"
+        arduino-cli lib install "XPT2046_Touchscreen@1.4"
+        arduino-cli lib install "ArduinoJson@7.0.4"
+        arduino-cli lib install "Preferences@2.1.0"
 
     - name: Build firmware for ${{ matrix.variant.name }}
       run: |
-        $HOME/bin/arduino-cli compile --fqbn esp32:esp32:esp32 aura \
+        arduino-cli compile --fqbn esp32:esp32:esp32 aura \
           --build-property "compiler.cpp.extra_flags=-D${{ matrix.variant.define }}" \
           --output-dir build/${{ matrix.variant.name }}
 
     - name: Extract ESP32 system binaries
       run: |
         # Find the ESP32 core path
-        ESP32_PATH=$($HOME/bin/arduino-cli core list | grep esp32:esp32 | awk '{print $NF}')
+        ESP32_PATH=$(arduino-cli core list | grep esp32:esp32 | awk '{print $NF}')
         
         # Create output directory
         mkdir -p release/${{ matrix.variant.name }}
