@@ -69,6 +69,7 @@ jobs:
       run: |
         arduino-cli compile --fqbn esp32:esp32:esp32 aura \
           --build-property "compiler.cpp.extra_flags=-D${{ matrix.variant.define }}" \
+          --library ./lvgl \
           --output-dir build/${{ matrix.variant.name }}
 
     - name: Extract ESP32 system binaries
