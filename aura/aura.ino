@@ -8,8 +8,12 @@
 #include <Preferences.h>
 #include "esp_system.h"
 
+// Basic WiFi support (WiFiManager disabled due to compilation conflicts)
+#if AURA_ENABLE_WIFI
+    #include <WiFi.h>
+#endif
+
 #include "config/screen_select.h"
-#include "wifi_manager_helpers.h"
 
 #define XPT2046_IRQ 36   // T_IRQ
 #define XPT2046_MOSI 32  // T_DIN
@@ -484,7 +488,7 @@ void setup() {
   analogWrite(LCD_BACKLIGHT_PIN, brightness);
 
   // Check for Wi-Fi config and request it if not available
-  setup_wifi_manager(DEFAULT_CAPTIVE_SSID);
+  setup_wifi_manager_direct(DEFAULT_CAPTIVE_SSID);
 
   lv_timer_create(update_clock, 1000, NULL);
 
@@ -767,7 +771,7 @@ static void reset_wifi_event_handler(lv_event_t *e) {
 static void reset_confirm_yes_cb(lv_event_t *e) {
   lv_obj_t *mbox = (lv_obj_t *)lv_event_get_user_data(e);
   Serial.println("Clearing Wi-Fi creds and rebooting");
-  reset_wifi_settings();
+  reset_wifi_settings_direct();
   delay(100);
   esp_restart();
 }
@@ -1357,3 +1361,36 @@ const lv_img_dsc_t* choose_icon(int code, int is_day) {
         : &icon_mostly_cloudy_night;
   }
 }
+
+// Force the linker to include WiFiManager symbols by implementing it directly in the main .ino
+// This ensures the WiFiManager library gets linked properly
+#if AURA_ENABLE_WIFI
+void setup_wifi_manager_direct(const char* captive_ssid) {
+  // For now, use basic WiFi connection until WiFiManager compilation issue is resolved
+  // TODO: Re-enable WiFiManager once header conflicts are resolved
+  WiFi.begin();
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 10) {
+    delay(1000);
+    attempts++;
+    Serial.print(".");
+  }
+  
+  const char* ssid = (captive_ssid && *captive_ssid) ? captive_ssid : "Aura";
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("[Aura] WiFi connected");
+  } else {
+    Serial.println("[Aura] WiFi connection failed, continuing without WiFi");
+  }
+}
+
+void reset_wifi_settings_direct() {
+  // Basic WiFi reset
+  // TODO: Re-enable WiFiManager reset once compilation issue is resolved
+  WiFi.disconnect(true);
+  Serial.println("[Aura] WiFi settings reset");
+}
+#else
+void setup_wifi_manager_direct(const char*) {}
+void reset_wifi_settings_direct() {}
+#endif

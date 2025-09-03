@@ -10,6 +10,17 @@
     #endif
     #include <WiFi.h>
     #include <WiFiManager.h>
+    
+    // Force the linker to include WiFiManager symbols by creating a dummy reference
+    // This ensures the library gets linked even if the symbols aren't used at link time
+    extern "C" void __force_wifi_manager_link() {
+        static WiFiManager* dummy = nullptr;
+        if (dummy == nullptr) {
+            // This will never execute but forces linker to include WiFiManager
+            dummy = new WiFiManager();
+            delete dummy;
+        }
+    }
 
 void setup_wifi_manager(const char* captive_ssid) {
     WiFiManager wm;
