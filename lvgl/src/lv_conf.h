@@ -505,7 +505,7 @@
 
 #define LV_USE_BUTTON        1
 
-#define LV_USE_BUTTONMATRIX  0
+#define LV_USE_BUTTONMATRIX  1
 
 #define LV_USE_CALENDAR   0
 #if LV_USE_CALENDAR
@@ -533,7 +533,7 @@
 
 #define LV_USE_IMAGEBUTTON     0
 
-#define LV_USE_KEYBOARD   0
+#define LV_USE_KEYBOARD   1
 
 #define LV_USE_LABEL      1
 #if LV_USE_LABEL
@@ -550,7 +550,7 @@
 
 #define LV_USE_MENU       0
 
-#define LV_USE_MSGBOX     0
+#define LV_USE_MSGBOX     1
 
 #define LV_USE_ROLLER     0   /*Requires: lv_label*/
 
