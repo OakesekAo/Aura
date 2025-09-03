@@ -68,12 +68,15 @@ jobs:
 
     - name: Setup LVGL configuration
       run: |
-        # Find LVGL library path and copy configuration
+        # Find LVGL library path and copy configuration to parent directory
         LVGL_LIB_PATH=$(find /home/runner/Arduino/libraries -name "lvgl" -type d | head -1)
         echo "LVGL library path: $LVGL_LIB_PATH"
         if [ -n "$LVGL_LIB_PATH" ]; then
+          # Copy to LVGL library directory
           cp lvgl/src/lv_conf.h "$LVGL_LIB_PATH/lv_conf.h"
-          echo "Copied lv_conf.h to LVGL library"
+          # Also copy to the expected location (../../lv_conf.h relative to src)
+          cp lvgl/src/lv_conf.h "$(dirname "$LVGL_LIB_PATH")/lv_conf.h"
+          echo "Copied lv_conf.h to LVGL library and parent directory"
         else
           echo "ERROR: LVGL library not found"
           exit 1
