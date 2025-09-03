@@ -6,7 +6,7 @@ on:
       - 'v*'
   workflow_dispatc        # Build firmware with variant configuration
         arduino-cli compile --fqbn esp32:esp32:esp32 aura \
-          --build-property "compiler.cpp.extra_flags=-D${{ matrix.variant.define }}" \
+          --build-property "compiler.cpp.extra_flags=-D${{ matrix.variant.define }} -DENABLE_WIFI=0" \
           --output-dir build/${{ matrix.variant.folder }}   inputs:
       version:
         description: 'Release version (e.g., v1.0.0)'
