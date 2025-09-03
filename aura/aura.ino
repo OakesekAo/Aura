@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <WiFiManager.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <time.h>
@@ -8,6 +7,15 @@
 #include <XPT2046_Touchscreen.h>
 #include <Preferences.h>
 #include "esp_system.h"
+
+// WiFi support with custom implementation
+#if AURA_ENABLE_WIFI
+    #include <WiFi.h>
+    #include <WebServer.h>
+    #include <DNSServer.h>
+#endif
+
+#include "config/screen_select.h"
 
 #define XPT2046_IRQ 36   // T_IRQ
 #define XPT2046_MOSI 32  // T_DIN
@@ -222,6 +230,7 @@ const lv_font_t* get_font_42() {
 
 SPIClass touchscreenSPI = SPIClass(VSPI);
 XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
+TFT_eSPI tft = TFT_eSPI();
 uint32_t draw_buf[DRAW_BUF_SIZE / 4];
 int x, y, z;
 
@@ -328,6 +337,12 @@ static void settings_event_handler(lv_event_t *e);
 const lv_img_dsc_t *choose_image(int wmo_code, int is_day);
 const lv_img_dsc_t *choose_icon(int wmo_code, int is_day);
 
+// WiFi Management Functions (declared here for Arduino IDE compatibility)
+void setup_wifi_manager_direct(const char* captive_ssid);
+void reset_wifi_settings_direct();
+void handle_wifi_loop();
+void do_geocode_query(const char* q);
+
 
 int day_of_week(int y, int m, int d) {
   static const int t[] = { 0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4 };
@@ -433,11 +448,22 @@ void touchscreen_read(lv_indev_t *indev, lv_indev_data_t *data) {
   }
 }
 
+void my_disp_flush(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map) {
+  uint32_t w = (area->x2 - area->x1 + 1);
+  uint32_t h = (area->y2 - area->y1 + 1);
+
+  tft.startWrite();
+  tft.setAddrWindow(area->x1, area->y1, w, h);
+  tft.pushColors((uint16_t*)px_map, w * h, true);
+  tft.endWrite();
+
+  lv_display_flush_ready(disp);
+}
+
 void setup() {
   Serial.begin(115200);
   delay(100);
 
-  TFT_eSPI tft = TFT_eSPI();
   tft.init();
   pinMode(LCD_BACKLIGHT_PIN, OUTPUT);
 
@@ -448,7 +474,11 @@ void setup() {
   touchscreen.begin(touchscreenSPI);
   touchscreen.setRotation(0);
 
-  lv_display_t *disp = lv_tft_espi_create(SCREEN_WIDTH, SCREEN_HEIGHT, draw_buf, sizeof(draw_buf));
+  // Create LVGL display
+  lv_display_t *disp = lv_display_create(SCREEN_WIDTH, SCREEN_HEIGHT);
+  lv_display_set_flush_cb(disp, my_disp_flush);
+  lv_display_set_buffers(disp, draw_buf, NULL, sizeof(draw_buf), LV_DISPLAY_RENDER_MODE_PARTIAL);
+  
   lv_indev_t *indev = lv_indev_create();
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
   lv_indev_set_read_cb(indev, touchscreen_read);
@@ -467,9 +497,7 @@ void setup() {
   analogWrite(LCD_BACKLIGHT_PIN, brightness);
 
   // Check for Wi-Fi config and request it if not available
-  WiFiManager wm;
-  wm.setAPCallback(apModeCallback);
-  wm.autoConnect(DEFAULT_CAPTIVE_SSID);
+  setup_wifi_manager_direct(DEFAULT_CAPTIVE_SSID);
 
   lv_timer_create(update_clock, 1000, NULL);
 
@@ -486,13 +514,10 @@ void flush_wifi_splashscreen(uint32_t ms = 200) {
   }
 }
 
-void apModeCallback(WiFiManager *mgr) {
-  wifi_splash_screen();
-  flush_wifi_splashscreen();
-}
-
 void loop() {
   lv_timer_handler();
+  handle_wifi_loop();  // Handle WiFi management
+  
   static uint32_t last = millis();
 
   if (millis() - last >= UPDATE_INTERVAL) {
@@ -757,8 +782,7 @@ static void reset_wifi_event_handler(lv_event_t *e) {
 static void reset_confirm_yes_cb(lv_event_t *e) {
   lv_obj_t *mbox = (lv_obj_t *)lv_event_get_user_data(e);
   Serial.println("Clearing Wi-Fi creds and rebooting");
-  WiFiManager wm;
-  wm.resetSettings();
+  reset_wifi_settings_direct();
   delay(100);
   esp_restart();
 }
@@ -1021,23 +1045,47 @@ static void settings_event_handler(lv_event_t *e) {
 
 void do_geocode_query(const char *q) {
   geoDoc.clear();
+  
+#if AURA_ENABLE_WIFI
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("[Geocoding] WiFi not connected, skipping search");
+    return;
+  }
+  
   String url = String("https://geocoding-api.open-meteo.com/v1/search?name=") + urlencode(q) + "&count=15";
+  Serial.printf("[Geocoding] Searching for: %s\n", q.c_str());
 
   HTTPClient http;
+  http.setTimeout(10000);
   http.begin(url);
-  if (http.GET() == HTTP_CODE_OK) {
+  
+  int httpCode = http.GET();
+  if (httpCode == HTTP_CODE_OK) {
     auto err = deserializeJson(geoDoc, http.getString());
     if (!err) {
       geoResults = geoDoc["results"].as<JsonArray>();
       populate_results_dropdown();
+      Serial.printf("[Geocoding] Found %d results\n", geoResults.size());
+    } else {
+      Serial.println("[Geocoding] JSON parse failed");
     }
+  } else {
+    Serial.printf("[Geocoding] HTTP GET failed, code: %d\n", httpCode);
   }
   http.end();
+#else
+  Serial.println("[Geocoding] WiFi disabled, search unavailable");
+#endif
 }
 
 void fetch_and_update_weather() {
-  if (WiFi.status() != WL_CONNECTED) return;
+#if AURA_ENABLE_WIFI
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("[Weather] WiFi not connected, skipping weather update");
+    return;
+  }
 
+  Serial.println("[Weather] Fetching weather data...");
   String url = String("http://api.open-meteo.com/v1/forecast?latitude=")
                + latitude + "&longitude=" + longitude
                + "&current=temperature_2m,apparent_temperature,is_day,weather_code"
@@ -1047,11 +1095,12 @@ void fetch_and_update_weather() {
                + "&timezone=auto";
 
   HTTPClient http;
+  http.setTimeout(10000);  // 10 second timeout
   http.begin(url);
 
-  if (http.GET() == HTTP_CODE_OK) {
-    Serial.println("Updated weather from open-meteo: " + url);
-
+  int httpCode = http.GET();
+  if (httpCode == HTTP_CODE_OK) {
+    Serial.println("[Weather] Successfully fetched weather data");
     String payload = http.getString();
     DynamicJsonDocument doc(32 * 1024);
 
@@ -1133,12 +1182,17 @@ void fetch_and_update_weather() {
 
 
     } else {
-      Serial.print("JSON parse failed\n");
+      Serial.println("[Weather] JSON parse failed");
     }
   } else {
-    Serial.println("HTTP GET failed");
+    Serial.printf("[Weather] HTTP GET failed, code: %d\n", httpCode);
   }
+  
   http.end();
+#else
+  // No WiFi support, use placeholder data
+  Serial.println("[Weather] WiFi disabled, using placeholder data");
+#endif
 }
 
 const lv_img_dsc_t* choose_image(int code, int is_day) {
@@ -1348,3 +1402,197 @@ const lv_img_dsc_t* choose_icon(int code, int is_day) {
         : &icon_mostly_cloudy_night;
   }
 }
+
+// WiFi Management System
+#if AURA_ENABLE_WIFI
+WebServer server(80);
+DNSServer dnsServer;
+bool ap_mode = false;
+unsigned long wifi_connect_start = 0;
+const unsigned long WIFI_CONNECT_TIMEOUT = 30000; // 30 seconds
+
+// WiFi Configuration Functions
+void setup_wifi_manager_direct(const char* captive_ssid);
+void reset_wifi_settings_direct();
+void start_config_portal(const char* ssid);
+void handle_wifi_config();
+void handle_wifi_save();
+void handle_root();
+void scan_networks();
+bool connect_to_saved_wifi();
+bool connect_to_wifi(const String& ssid, const String& password);
+
+// Implementation of WiFi Management
+void setup_wifi_manager_direct(const char* captive_ssid) {
+  Serial.println("[WiFi] Starting WiFi setup...");
+  
+  // Try to connect to saved WiFi first
+  if (connect_to_saved_wifi()) {
+    Serial.println("[WiFi] Connected to saved network");
+    return;
+  }
+  
+  // If no saved WiFi or connection failed, start config portal
+  const char* ssid = (captive_ssid && *captive_ssid) ? captive_ssid : DEFAULT_CAPTIVE_SSID;
+  start_config_portal(ssid);
+}
+
+bool connect_to_saved_wifi() {
+  prefs.begin("wifi", false);
+  String saved_ssid = prefs.getString("ssid", "");
+  String saved_password = prefs.getString("password", "");
+  prefs.end();
+  
+  if (saved_ssid.length() == 0) {
+    Serial.println("[WiFi] No saved credentials found");
+    return false;
+  }
+  
+  Serial.printf("[WiFi] Attempting to connect to saved network: %s\n", saved_ssid.c_str());
+  return connect_to_wifi(saved_ssid, saved_password);
+}
+
+bool connect_to_wifi(const String& ssid, const String& password) {
+  wifi_connect_start = millis();
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid.c_str(), password.c_str());
+  
+  Serial.printf("[WiFi] Connecting to %s", ssid.c_str());
+  
+  while (WiFi.status() != WL_CONNECTED && millis() - wifi_connect_start < WIFI_CONNECT_TIMEOUT) {
+    delay(500);
+    Serial.print(".");
+    lv_task_handler();  // Keep UI responsive
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf("\n[WiFi] Connected! IP: %s\n", WiFi.localIP().toString().c_str());
+    return true;
+  } else {
+    Serial.println("\n[WiFi] Connection failed");
+    return false;
+  }
+}
+
+void start_config_portal(const char* ssid) {
+  Serial.printf("[WiFi] Starting config portal: %s\n", ssid);
+  
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAP(ssid);
+  
+  // Set up DNS server for captive portal
+  dnsServer.start(53, "*", WiFi.softAPIP());
+  
+  // Web server routes
+  server.on("/", handle_root);
+  server.on("/wifi", handle_wifi_config);
+  server.on("/save", HTTP_POST, handle_wifi_save);
+  server.onNotFound(handle_root);  // Redirect all to config page
+  
+  server.begin();
+  ap_mode = true;
+  
+  Serial.printf("[WiFi] Config portal started at http://%s\n", WiFi.softAPIP().toString().c_str());
+}
+
+void handle_root() {
+  String html = "<!DOCTYPE html><html><head><title>Aura WiFi Setup</title>";
+  html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
+  html += "<style>body{font-family:Arial,sans-serif;margin:20px;background:#f0f0f0;}";
+  html += ".container{max-width:400px;margin:0 auto;background:white;padding:20px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);}";
+  html += "h1{color:#333;text-align:center;}input,select{width:100%;padding:10px;margin:10px 0;border:1px solid #ddd;border-radius:4px;box-sizing:border-box;}";
+  html += "button{background:#007cba;color:white;padding:12px 24px;border:none;border-radius:4px;cursor:pointer;width:100%;font-size:16px;}";
+  html += "button:hover{background:#005a8a;}.network{padding:8px;margin:4px 0;background:#f9f9f9;border-radius:4px;cursor:pointer;}";
+  html += ".network:hover{background:#e9e9e9;}</style></head><body>";
+  html += "<div class='container'><h1>Aura WiFi Setup</h1>";
+  html += "<p>Select your WiFi network:</p>";
+  
+  // Scan for networks
+  int n = WiFi.scanNetworks();
+  html += "<form action='/save' method='post'>";
+  html += "<select name='ssid' id='ssid'>";
+  
+  for (int i = 0; i < n; i++) {
+    String ssid = WiFi.SSID(i);
+    html += "<option value='" + ssid + "'>" + ssid + " (" + WiFi.RSSI(i) + " dBm)</option>";
+  }
+  
+  html += "</select>";
+  html += "<input type='password' name='password' placeholder='WiFi Password' required>";
+  html += "<button type='submit'>Connect</button>";
+  html += "</form></div></body></html>";
+  
+  server.send(200, "text/html", html);
+}
+
+void handle_wifi_config() {
+  handle_root();
+}
+
+void handle_wifi_save() {
+  String ssid = server.arg("ssid");
+  String password = server.arg("password");
+  
+  Serial.printf("[WiFi] Saving credentials for: %s\n", ssid.c_str());
+  
+  // Save credentials
+  prefs.begin("wifi", false);
+  prefs.putString("ssid", ssid);
+  prefs.putString("password", password);
+  prefs.end();
+  
+  String html = "<!DOCTYPE html><html><head><title>Aura WiFi Setup</title>";
+  html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
+  html += "<meta http-equiv='refresh' content='10;url=/'>";
+  html += "<style>body{font-family:Arial,sans-serif;margin:20px;background:#f0f0f0;text-align:center;}";
+  html += ".container{max-width:400px;margin:0 auto;background:white;padding:20px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);}</style></head><body>";
+  html += "<div class='container'><h1>Connecting...</h1>";
+  html += "<p>Attempting to connect to " + ssid + "</p>";
+  html += "<p>Please wait while the device connects to your network.</p>";
+  html += "<p>This page will refresh automatically.</p></div></body></html>";
+  
+  server.send(200, "text/html", html);
+  
+  // Try to connect with new credentials
+  delay(1000);
+  if (connect_to_wifi(ssid, password)) {
+    ap_mode = false;
+    server.stop();
+    Serial.println("[WiFi] Successfully connected, stopping config portal");
+  }
+}
+
+void reset_wifi_settings_direct() {
+  Serial.println("[WiFi] Resetting WiFi settings");
+  prefs.begin("wifi", false);
+  prefs.clear();
+  prefs.end();
+  WiFi.disconnect(true);
+  delay(1000);
+}
+
+// Handle WiFi in main loop
+void handle_wifi_loop() {
+  if (ap_mode) {
+    dnsServer.processNextRequest();
+    server.handleClient();
+  }
+  
+  // Check WiFi status periodically
+  static unsigned long last_wifi_check = 0;
+  if (millis() - last_wifi_check > 30000) {  // Check every 30 seconds
+    last_wifi_check = millis();
+    
+    if (!ap_mode && WiFi.status() != WL_CONNECTED) {
+      Serial.println("[WiFi] Connection lost, attempting reconnect...");
+      connect_to_saved_wifi();
+    }
+  }
+}
+
+#else
+// Stub implementations when WiFi is disabled
+void setup_wifi_manager_direct(const char*) {}
+void reset_wifi_settings_direct() {}
+void handle_wifi_loop() {}
+#endif
