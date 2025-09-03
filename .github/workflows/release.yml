@@ -4,8 +4,10 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    inputs:
+  workflow_dispatc        # Build firmware with variant configuration
+        arduino-cli compile --fqbn esp32:esp32:esp32 aura \
+          --build-property "compiler.cpp.extra_flags=-D${{ matrix.variant.define }}" \
+          --output-dir build/${{ matrix.variant.folder }}   inputs:
       version:
         description: 'Release version (e.g., v1.0.0)'
         required: true
@@ -64,6 +66,20 @@ jobs:
         arduino-cli lib install "XPT2046_Touchscreen@1.4"
         arduino-cli lib install "ArduinoJson@7.0.4"
         arduino-cli lib install "Preferences@2.1.0"
+        arduino-cli lib install "lvgl@9.2.2"
+
+    - name: Setup LVGL configuration
+      run: |
+        # Find LVGL library path and copy configuration
+        LVGL_LIB_PATH=$(find /home/runner/Arduino/libraries -name "lvgl" -type d | head -1)
+        echo "LVGL library path: $LVGL_LIB_PATH"
+        if [ -n "$LVGL_LIB_PATH" ]; then
+          cp lvgl/src/lv_conf.h "$LVGL_LIB_PATH/lv_conf.h"
+          echo "Copied lv_conf.h to LVGL library"
+        else
+          echo "ERROR: LVGL library not found"
+          exit 1
+        fi
 
     - name: Setup TFT_eSPI configuration
       run: |
