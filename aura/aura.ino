@@ -9,7 +9,7 @@
 #include "esp_system.h"
 
 // WiFi support with custom implementation
-#if AURA_ENABLE_WIFI
+#if ENABLE_WIFI
     #include <WiFi.h>
     #include <WebServer.h>
     #include <DNSServer.h>
@@ -22,10 +22,9 @@
 #define XPT2046_MISO 39  // T_OUT
 #define XPT2046_CLK 25   // T_CLK
 #define XPT2046_CS 33    // T_CS
-#include "config/screen_select.h"
-#define LCD_BACKLIGHT_PIN AURA_TFT_BL
-#define SCREEN_WIDTH AURA_TFT_WIDTH
-#define SCREEN_HEIGHT AURA_TFT_HEIGHT
+#define LCD_BACKLIGHT_PIN 21
+#define SCREEN_WIDTH 240
+#define SCREEN_HEIGHT 320
 #define DRAW_BUF_SIZE (SCREEN_WIDTH * SCREEN_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
 
 #define LATITUDE_DEFAULT "51.5074"
@@ -1046,14 +1045,14 @@ static void settings_event_handler(lv_event_t *e) {
 void do_geocode_query(const char *q) {
   geoDoc.clear();
   
-#if AURA_ENABLE_WIFI
+#if ENABLE_WIFI
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("[Geocoding] WiFi not connected, skipping search");
     return;
   }
   
   String url = String("https://geocoding-api.open-meteo.com/v1/search?name=") + urlencode(q) + "&count=15";
-  Serial.printf("[Geocoding] Searching for: %s\n", q.c_str());
+  Serial.printf("[Geocoding] Searching for: %s\n", q);
 
   HTTPClient http;
   http.setTimeout(10000);
@@ -1079,7 +1078,7 @@ void do_geocode_query(const char *q) {
 }
 
 void fetch_and_update_weather() {
-#if AURA_ENABLE_WIFI
+#if ENABLE_WIFI
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("[Weather] WiFi not connected, skipping weather update");
     return;
@@ -1404,7 +1403,7 @@ const lv_img_dsc_t* choose_icon(int code, int is_day) {
 }
 
 // WiFi Management System
-#if AURA_ENABLE_WIFI
+#if ENABLE_WIFI
 WebServer server(80);
 DNSServer dnsServer;
 bool ap_mode = false;
