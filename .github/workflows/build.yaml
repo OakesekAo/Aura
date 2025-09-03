@@ -2,7 +2,9 @@ name: Build Aura (ESP32)
 
 on:
   push:
-    branches: [ feat/24-ci-clean ]
+    branches:
+      - main
+      - feat/24-ci-clean
   pull_request:
 
 jobs:
@@ -32,6 +34,7 @@ jobs:
           arduino-cli lib install "TFT_eSPI@2.5.43"
           arduino-cli lib install "XPT2046_Touchscreen@1.4"
           arduino-cli lib install "WiFiManager@2.0.17"
+          arduino-cli lib list
 
       - name: Compile ${{ matrix.target }}
         run: |
@@ -49,7 +52,8 @@ jobs:
           arduino-cli compile \
             --fqbn esp32:esp32:esp32 \
             --board-options PartitionScheme=huge_app \
-            --build-property "build.extra_flags=$EXTRA_FLAGS -DLV_USE_TFT_ESPI=1 -DAURA_ENABLE_WIFI=0" \
+            --build-property "build.extra_flags=$EXTRA_FLAGS -DLV_CONF_SKIP -DLV_USE_TFT_ESPI=0" \
+            --build-property "compiler.cpp.extra_flags=-include preinclude.h" \
             --export-binaries \
             --output-dir "$OUT" \
             aura

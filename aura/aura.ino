@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <WiFiManager.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <time.h>
@@ -10,6 +9,7 @@
 #include "esp_system.h"
 
 #include "config/screen_select.h"
+#include "wifi_manager_helpers.h"
 
 #define XPT2046_IRQ 36   // T_IRQ
 #define XPT2046_MOSI 32  // T_DIN
@@ -223,6 +223,7 @@ const lv_font_t* get_font_42() {
 
 SPIClass touchscreenSPI = SPIClass(VSPI);
 XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
+TFT_eSPI tft = TFT_eSPI();
 uint32_t draw_buf[DRAW_BUF_SIZE / 4];
 int x, y, z;
 
@@ -434,11 +435,22 @@ void touchscreen_read(lv_indev_t *indev, lv_indev_data_t *data) {
   }
 }
 
+void my_disp_flush(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map) {
+  uint32_t w = (area->x2 - area->x1 + 1);
+  uint32_t h = (area->y2 - area->y1 + 1);
+
+  tft.startWrite();
+  tft.setAddrWindow(area->x1, area->y1, w, h);
+  tft.pushColors((uint16_t*)px_map, w * h, true);
+  tft.endWrite();
+
+  lv_display_flush_ready(disp);
+}
+
 void setup() {
   Serial.begin(115200);
   delay(100);
 
-  TFT_eSPI tft = TFT_eSPI();
   tft.init();
   pinMode(LCD_BACKLIGHT_PIN, OUTPUT);
 
@@ -449,7 +461,11 @@ void setup() {
   touchscreen.begin(touchscreenSPI);
   touchscreen.setRotation(0);
 
-  lv_display_t *disp = lv_tft_espi_create(SCREEN_WIDTH, SCREEN_HEIGHT, draw_buf, sizeof(draw_buf));
+  // Create LVGL display
+  lv_display_t *disp = lv_display_create(SCREEN_WIDTH, SCREEN_HEIGHT);
+  lv_display_set_flush_cb(disp, my_disp_flush);
+  lv_display_set_buffers(disp, draw_buf, NULL, sizeof(draw_buf), LV_DISPLAY_RENDER_MODE_PARTIAL);
+  
   lv_indev_t *indev = lv_indev_create();
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
   lv_indev_set_read_cb(indev, touchscreen_read);
@@ -468,9 +484,7 @@ void setup() {
   analogWrite(LCD_BACKLIGHT_PIN, brightness);
 
   // Check for Wi-Fi config and request it if not available
-  WiFiManager wm;
-  wm.setAPCallback(apModeCallback);
-  wm.autoConnect(DEFAULT_CAPTIVE_SSID);
+  setup_wifi_manager(DEFAULT_CAPTIVE_SSID);
 
   lv_timer_create(update_clock, 1000, NULL);
 
@@ -485,11 +499,6 @@ void flush_wifi_splashscreen(uint32_t ms = 200) {
     lv_timer_handler();
     delay(5);
   }
-}
-
-void apModeCallback(WiFiManager *mgr) {
-  wifi_splash_screen();
-  flush_wifi_splashscreen();
 }
 
 void loop() {
@@ -758,8 +767,7 @@ static void reset_wifi_event_handler(lv_event_t *e) {
 static void reset_confirm_yes_cb(lv_event_t *e) {
   lv_obj_t *mbox = (lv_obj_t *)lv_event_get_user_data(e);
   Serial.println("Clearing Wi-Fi creds and rebooting");
-  WiFiManager wm;
-  wm.resetSettings();
+  reset_wifi_settings();
   delay(100);
   esp_restart();
 }
