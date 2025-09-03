@@ -67,11 +67,20 @@ jobs:
 
     - name: Setup TFT_eSPI configuration
       run: |
-        # Find TFT_eSPI library path
-        TFT_LIB_PATH=$(arduino-cli lib list | grep TFT_eSPI | awk '{print $3}')
+        # Debug: Show library list output
+        echo "Library list output:"
+        arduino-cli lib list | grep TFT_eSPI || echo "TFT_eSPI not found"
+        arduino-cli lib list | head -10
+        # Find TFT_eSPI library path - try different field
+        TFT_LIB_PATH=$(find /home/runner/Arduino/libraries -name "TFT_eSPI" -type d | head -1)
         echo "TFT_eSPI library path: $TFT_LIB_PATH"
         # Copy TFT_eSPI User_Setup.h from our config
-        cp TFT_eSPI/User_Setup.h "$TFT_LIB_PATH/User_Setup.h"
+        if [ -n "$TFT_LIB_PATH" ]; then
+          cp TFT_eSPI/User_Setup.h "$TFT_LIB_PATH/User_Setup.h"
+        else
+          echo "TFT_eSPI library not found"
+          exit 1
+        fi
 
     - name: Build firmware for ${{ matrix.variant.name }}
       run: |
