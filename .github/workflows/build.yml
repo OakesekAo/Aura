@@ -2,9 +2,7 @@ name: Build Aura (ESP32)
 
 on:
   push:
-    branches:
-      - main
-      - feat/24-ci-clean
+    branches: [ feat/24-ci-clean ]
   pull_request:
 
 jobs:
@@ -34,7 +32,6 @@ jobs:
           arduino-cli lib install "TFT_eSPI@2.5.43"
           arduino-cli lib install "XPT2046_Touchscreen@1.4"
           arduino-cli lib install "WiFiManager@2.0.17"
-          arduino-cli lib list
 
       - name: Compile ${{ matrix.target }}
         run: |
@@ -47,16 +44,16 @@ jobs:
 
           OUT="out/${{ matrix.target }}"
           mkdir -p "$OUT"
-          test -f aura/weather.ino || { echo "::error ::missing aura/weather.ino"; exit 1; }
+          test -f aura/aura.ino || { echo "::error ::missing aura/aura.ino"; exit 1; }
 
           arduino-cli compile \
-            --fqbn esp32:esp32:esp32dev \
+            --fqbn esp32:esp32:esp32 \
             --board-options PartitionScheme=huge_app \
             --build-property "build.extra_flags=$EXTRA_FLAGS -DLV_CONF_SKIP -DLV_USE_TFT_ESPI=0" \
             --build-property "compiler.cpp.extra_flags=-include preinclude.h" \
             --export-binaries \
             --output-dir "$OUT" \
-            aura/weather.ino
+            aura
 
       - name: Upload ${{ matrix.target }} firmware
         uses: actions/upload-artifact@v4
