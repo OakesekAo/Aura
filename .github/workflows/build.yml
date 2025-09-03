@@ -49,7 +49,7 @@ jobs:
           arduino-cli compile \
             --fqbn esp32:esp32:esp32 \
             --board-options PartitionScheme=huge_app \
-            --build-property "build.extra_flags=$EXTRA_FLAGS -DLV_USE_TFT_ESPI=1 -DAURA_ENABLE_WIFI=0" \
+            --build-property "build.extra_flags=$EXTRA_FLAGS -DLV_USE_TFT_ESPI=1 -DAURA_ENABLE_WIFI=0 -DLV_CONF_INCLUDE_SIMPLE" \
             --export-binaries \
             --output-dir "$OUT" \
             aura
