@@ -244,10 +244,18 @@ jobs:
         # Clean up temporary file
         rm -f firmware/blank_4k.bin
         
+        # Also create individual components for BongoCat-style flashing
+        echo "Creating individual component files for compatibility..."
+        cp "$FINAL_BOOTLOADER" "firmware/aura-bootloader-${{ matrix.variant.output }}.bin"
+        cp "$FINAL_PARTITIONS" "firmware/aura-partitions-${{ matrix.variant.output }}.bin"
+        cp "$BOOT_APP0_PATH" "firmware/aura-boot-app0-${{ matrix.variant.output }}.bin"
+        cp "$APP_BIN" "firmware/aura-app-${{ matrix.variant.output }}.bin"
+        
         echo "Created merged firmware: firmware/${OUTPUT_NAME}.bin"
-        ls -la firmware/
+        echo "Created individual components:"
+        ls -la firmware/aura-*-${{ matrix.variant.output }}.bin
 
-    - name: Create manifest file
+    - name: Create manifest files
       run: |
         # Get version from git ref or use 'development'
         if [[ "${{ github.ref }}" == refs/tags/* ]]; then
@@ -257,7 +265,8 @@ jobs:
         fi
         
         OUTPUT_NAME="aura-firmware-${{ matrix.variant.output }}"
-        # Create manifest JSON for web installer
+        
+        # Create manifest JSON for web installer (merged binary approach)
         cat > firmware/manifest-${{ matrix.variant.output }}.json << EOF
         {
           "name": "Aura ${{ matrix.variant.name }}",
@@ -278,7 +287,42 @@ jobs:
         }
         EOF
         
-        echo "Created manifest: firmware/manifest-${{ matrix.variant.output }}.json"
+        # Create BongoCat-style manifest (separate components approach)
+        cat > firmware/manifest-components-${{ matrix.variant.output }}.json << EOF
+        {
+          "name": "Aura ${{ matrix.variant.name }} (Components)",
+          "version": "$VERSION",
+          "home_assistant_domain": "esphome",
+          "new_install_prompt_erase": true,
+          "builds": [
+            {
+              "chipFamily": "ESP32",
+              "parts": [
+                {
+                  "path": "aura-bootloader-${{ matrix.variant.output }}.bin",
+                  "offset": 4096
+                },
+                {
+                  "path": "aura-partitions-${{ matrix.variant.output }}.bin",
+                  "offset": 32768
+                },
+                {
+                  "path": "aura-boot-app0-${{ matrix.variant.output }}.bin",
+                  "offset": 57344
+                },
+                {
+                  "path": "aura-app-${{ matrix.variant.output }}.bin",
+                  "offset": 65536
+                }
+              ]
+            }
+          ]
+        }
+        EOF
+        
+        echo "Created manifests:"
+        echo "- Merged binary: firmware/manifest-${{ matrix.variant.output }}.json"
+        echo "- Components: firmware/manifest-components-${{ matrix.variant.output }}.json"
         cat firmware/manifest-${{ matrix.variant.output }}.json
 
     - name: Upload firmware artifacts

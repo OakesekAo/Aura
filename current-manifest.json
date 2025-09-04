@@ -1,0 +1,17 @@
+{
+  "name": "Aura 24_ILI9341",
+  "version": "v1.0.4-web-installer",
+  "home_assistant_domain": "esphome",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {
+          "path": "aura-firmware-24-ili9341.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}

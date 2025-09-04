@@ -1,0 +1,229 @@
+name: Build and Release Firmware
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - name: "24_ILI9341"
+            define: "AURA_24_ILI9341"
+            description: "2.4 inch ILI9341 display"
+          - name: "24_ST7789"
+            define: "AURA_24_ST7789"
+            description: "2.4 inch ST7789 display"
+          - name: "28_ILI9341"
+            define: "AURA_28_ILI9341" 
+            description: "2.8 inch ILI9341 display"
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Cache pip
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Cache Arduino CLI
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.arduino15
+          ~/Arduino/libraries
+        key: ${{ runner.os }}-arduino-${{ hashFiles('**/*.ino') }}
+        restore-keys: |
+          ${{ runner.os }}-arduino-
+
+    - name: Setup Arduino CLI
+      uses: arduino/setup-arduino-cli@v1
+
+    - name: Install ESP32 platform
+      run: |
+        arduino-cli config init
+        arduino-cli core update-index
+        arduino-cli core install esp32:esp32@2.0.17
+
+    - name: Install required libraries
+      run: |
+        arduino-cli lib install "TFT_eSPI@2.5.43"
+        arduino-cli lib install "XPT2046_Touchscreen@1.4"
+        arduino-cli lib install "ArduinoJson@7.0.4"
+        arduino-cli lib install "Preferences@2.1.0"
+        arduino-cli lib install "lvgl@9.2.2"
+
+    - name: Setup LVGL configuration
+      run: |
+        # Find LVGL library path and copy configuration to parent directory
+        LVGL_LIB_PATH=$(find /home/runner/Arduino/libraries -name "lvgl" -type d | head -1)
+        echo "LVGL library path: $LVGL_LIB_PATH"
+        if [ -n "$LVGL_LIB_PATH" ]; then
+          # Copy to LVGL library directory
+          cp lvgl/src/lv_conf.h "$LVGL_LIB_PATH/lv_conf.h"
+          # Also copy to the expected location (../../lv_conf.h relative to src)
+          cp lvgl/src/lv_conf.h "$(dirname "$LVGL_LIB_PATH")/lv_conf.h"
+          echo "Copied lv_conf.h to LVGL library and parent directory"
+        else
+          echo "ERROR: LVGL library not found"
+          exit 1
+        fi
+
+    - name: Setup TFT_eSPI configuration
+      run: |
+        # Debug: Show library list output
+        echo "Library list output:"
+        arduino-cli lib list | grep TFT_eSPI || echo "TFT_eSPI not found"
+        arduino-cli lib list | head -10
+        # Find TFT_eSPI library path - try different field
+        TFT_LIB_PATH=$(find /home/runner/Arduino/libraries -name "TFT_eSPI" -type d | head -1)
+        echo "TFT_eSPI library path: $TFT_LIB_PATH"
+        # Copy TFT_eSPI User_Setup.h from our config
+        if [ -n "$TFT_LIB_PATH" ]; then
+          cp TFT_eSPI/User_Setup.h "$TFT_LIB_PATH/User_Setup.h"
+        else
+          echo "TFT_eSPI library not found"
+          exit 1
+        fi
+
+    - name: Build firmware for ${{ matrix.variant.name }}
+      run: |
+        # Build firmware with variant configuration
+        arduino-cli compile --fqbn esp32:esp32:esp32 aura \
+          --build-property "compiler.cpp.extra_flags=-D${{ matrix.variant.define }} -DENABLE_WIFI=0" \
+          --output-dir build/${{ matrix.variant.name }}
+
+    - name: Extract ESP32 system binaries
+      run: |
+        # Find the ESP32 core path
+        ESP32_PATH=$(find ~/.arduino15/packages/esp32/hardware/esp32 -name "2.0.17" -type d | head -1)
+        echo "ESP32 path: $ESP32_PATH"
+        
+        # Debug: List the actual directory structure to see where files are located
+        echo "Available bootloader files:"
+        find "$ESP32_PATH" -name "*bootloader*" -type f | head -10
+        echo "Available partition files:"
+        find "$ESP32_PATH" -name "*boot_app0*" -type f | head -5
+        
+        # Create output directory
+        mkdir -p release/${{ matrix.variant.name }}
+        
+        # Find the correct bootloader path (ESP32 2.0.17 has different structure)
+        BOOTLOADER_PATH=$(find "$ESP32_PATH" -name "bootloader_dio_40m.bin" -type f | head -1)
+        if [ -z "$BOOTLOADER_PATH" ]; then
+          # Try alternative bootloader names
+          BOOTLOADER_PATH=$(find "$ESP32_PATH" -name "bootloader*.bin" -type f | head -1)
+        fi
+        
+        BOOT_APP0_PATH=$(find "$ESP32_PATH" -name "boot_app0.bin" -type f | head -1)
+        
+        echo "Found bootloader: $BOOTLOADER_PATH"
+        echo "Found boot_app0: $BOOT_APP0_PATH"
+        
+        # Copy system binaries with variant-specific names
+        if [ -n "$BOOT_APP0_PATH" ]; then
+          cp "$BOOT_APP0_PATH" "release/${{ matrix.variant.name }}/boot_app0-${{ matrix.variant.name }}.bin"
+        else
+          echo "ERROR: boot_app0.bin not found"
+          exit 1
+        fi
+        
+        if [ -n "$BOOTLOADER_PATH" ]; then
+          cp "$BOOTLOADER_PATH" "release/${{ matrix.variant.name }}/bootloader-${{ matrix.variant.name }}.bin"
+        else
+          echo "ERROR: bootloader binary not found"
+          exit 1
+        fi
+        
+        # Create partition table (basic 4MB layout)
+        echo "# Name,   Type, SubType, Offset,  Size, Flags" > partition_table.csv
+        echo "nvs,      data, nvs,     0x9000,  0x5000," >> partition_table.csv
+        echo "otadata,  data, ota,     0xe000,  0x2000," >> partition_table.csv
+        echo "app0,     app,  ota_0,   0x10000, 0x140000," >> partition_table.csv
+        echo "spiffs,   data, spiffs,  0x150000,0xB0000," >> partition_table.csv
+        
+        # Generate partition binary
+        python "$ESP32_PATH/tools/gen_esp32part.py" partition_table.csv "release/${{ matrix.variant.name }}/partitions-${{ matrix.variant.name }}.bin"
+        
+        # Copy application binary
+        cp "build/${{ matrix.variant.name }}/aura.ino.bin" "release/${{ matrix.variant.name }}/app-${{ matrix.variant.name }}.bin"
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: firmware-${{ matrix.variant.name }}
+        path: release/${{ matrix.variant.name }}/
+        retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: release/
+
+    - name: Prepare release assets
+      run: |
+        mkdir -p assets
+        
+        # Move all firmware files to assets directory with correct names
+        find release/ -name "*.bin" -exec cp {} assets/ \;
+        
+        # List files for verification
+        echo "Release assets:"
+        ls -la assets/
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.event.inputs.version || github.ref_name }}
+        name: Aura Weather Display ${{ github.event.inputs.version || github.ref_name }}
+        body: |
+          ## Aura Weather Display Firmware Release
+          
+          ### Supported Variants
+          - **2.4" ILI9341** - 2.4 inch displays with ILI9341 driver
+          - **2.4" ST7789** - 2.4 inch displays with ST7789 driver  
+          - **2.8" ILI9341** - 2.8 inch displays with ILI9341 driver (most common)
+          
+          ### Installation
+          Use the [Aura Web Installer](https://oakesekao.github.io/aura-installer/) for easy firmware installation.
+          
+          ### Manual Installation
+          For each variant, flash the following files at their respective offsets:
+          - `bootloader-{variant}.bin` at 0x1000
+          - `partitions-{variant}.bin` at 0x8000  
+          - `boot_app0-{variant}.bin` at 0xE000
+          - `app-{variant}.bin` at 0x10000
+          
+          ### Changes in this Release
+          - Optimized LVGL memory usage (49% flash usage vs previous 152%)
+          - Disabled unused LVGL widgets to save over 1.3MB
+          - Improved build system for multiple display variants
+          - Ready for web installer integration
+        files: assets/*
+        draft: false
+        prerelease: false
+        fail_on_unmatched_files: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

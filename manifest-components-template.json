@@ -1,0 +1,29 @@
+{
+  "name": "Aura {{ VARIANT_NAME }}",
+  "version": "{{ VERSION }}",
+  "home_assistant_domain": "esphome", 
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {
+          "path": "aura-bootloader-{{ VARIANT_OUTPUT }}.bin",
+          "offset": 4096
+        },
+        {
+          "path": "aura-partitions-{{ VARIANT_OUTPUT }}.bin",
+          "offset": 32768
+        },
+        {
+          "path": "aura-boot-app0-{{ VARIANT_OUTPUT }}.bin",
+          "offset": 57344
+        },
+        {
+          "path": "aura-app-{{ VARIANT_OUTPUT }}.bin",
+          "offset": 65536
+        }
+      ]
+    }
+  ]
+}
