@@ -112,12 +112,41 @@ jobs:
         ESP32_PATH=$(find ~/.arduino15/packages/esp32/hardware/esp32 -name "2.0.17" -type d | head -1)
         echo "ESP32 path: $ESP32_PATH"
         
+        # Debug: List the actual directory structure to see where files are located
+        echo "Available bootloader files:"
+        find "$ESP32_PATH" -name "*bootloader*" -type f | head -10
+        echo "Available partition files:"
+        find "$ESP32_PATH" -name "*boot_app0*" -type f | head -5
+        
         # Create output directory
         mkdir -p release/${{ matrix.variant.name }}
         
+        # Find the correct bootloader path (ESP32 2.0.17 has different structure)
+        BOOTLOADER_PATH=$(find "$ESP32_PATH" -name "bootloader_dio_40m.bin" -type f | head -1)
+        if [ -z "$BOOTLOADER_PATH" ]; then
+          # Try alternative bootloader names
+          BOOTLOADER_PATH=$(find "$ESP32_PATH" -name "bootloader*.bin" -type f | head -1)
+        fi
+        
+        BOOT_APP0_PATH=$(find "$ESP32_PATH" -name "boot_app0.bin" -type f | head -1)
+        
+        echo "Found bootloader: $BOOTLOADER_PATH"
+        echo "Found boot_app0: $BOOT_APP0_PATH"
+        
         # Copy system binaries with variant-specific names
-        cp "$ESP32_PATH/tools/partitions/boot_app0.bin" "release/${{ matrix.variant.name }}/boot_app0-${{ matrix.variant.name }}.bin"
-        cp "$ESP32_PATH/tools/sdk/esp32/bin/bootloader_dio_40m.bin" "release/${{ matrix.variant.name }}/bootloader-${{ matrix.variant.name }}.bin"
+        if [ -n "$BOOT_APP0_PATH" ]; then
+          cp "$BOOT_APP0_PATH" "release/${{ matrix.variant.name }}/boot_app0-${{ matrix.variant.name }}.bin"
+        else
+          echo "ERROR: boot_app0.bin not found"
+          exit 1
+        fi
+        
+        if [ -n "$BOOTLOADER_PATH" ]; then
+          cp "$BOOTLOADER_PATH" "release/${{ matrix.variant.name }}/bootloader-${{ matrix.variant.name }}.bin"
+        else
+          echo "ERROR: bootloader binary not found"
+          exit 1
+        fi
         
         # Create partition table (basic 4MB layout)
         echo "# Name,   Type, SubType, Offset,  Size, Flags" > partition_table.csv
