@@ -1,0 +1,45 @@
+{
+  // Allow agent to auto-run safe terminal commands
+  "chat.tools.terminal.autoApprove": {
+    // Common safe commands
+    "echo": true,
+    "mkdir": true,
+    "ls": true,
+    "pwd": true,
+    "cat": true,
+    "grep": true,
+    "find": true,
+    "head": true,
+    "tail": true,
+    "wc": true,
+    "/^git (status|add|restore|diff|show|log|branch|tag)\\b/": true,
+    
+    // Git tag operations
+    "/^git tag\\b/": true,
+    "/^git push origin v\\d+\\.\\d+\\.\\d+$/": true,
+    "/^git push origin :refs\\/tags\\/v\\d+\\.\\d+\\.\\d+$/": true,
+    
+    // Arduino/build commands
+    "/^arduino-cli\\b/": true,
+    "/^gh\\b/": true,
+    "sleep": true,
+    
+    // Branch-specific git operations for fix-release-workflow-issues
+    "/^git (checkout|switch) -b?\\s+fix-release-workflow-issues\\b/": true,
+    "/^git commit(\\b|\\s)/": true,
+    "/^git push\\b.*\\s+origin\\s+fix-release-workflow-issues\\b/": true,
+    "/^git rebase\\b.*\\s+fix-release-workflow-issues\\b/": true,
+    
+    // Deny dangerous or destructive commands
+    "rm": false,
+    "rmdir": false,
+    "del": false,
+    "chmod": false,
+    "chown": false,
+    "/\\b--force\\b/": false,
+    "/\\b--hard\\b/": false,
+    "/^git (push|merge|rebase)\\b.*\\b(main|master|develop)\\b/": false
+  },
+  // Let agent run tasks without prompt
+  "github.copilot.chat.agent.runTasks": true
+}
