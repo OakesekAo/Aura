@@ -9,9 +9,9 @@ The Aura Weather Display firmware is now available with web installer compatible
 Each Aura release contains 6 critical files for web installer compatibility:
 
 ### Firmware Binaries (Merged)
-- `aura-firmware-24-ili9341.bin` - 2.4" ILI9341 displays (~628 KiB)
-- `aura-firmware-24-st7789.bin` - 2.4" ST7789 displays (~628 KiB) 
-- `aura-firmware-28-ili9341.bin` - 2.8" ILI9341 displays (~628 KiB)
+- `aura-firmware-24-ili9341.bin` - 2.4" ILI9341 displays (~705 KiB)
+- `aura-firmware-24-st7789.bin` - 2.4" ST7789 displays (~705 KiB) 
+- `aura-firmware-28-ili9341.bin` - 2.8" ILI9341 displays (~705 KiB)
 
 ### Manifest Files (ESPHome Web Tools Compatible)
 - `manifest-24-ili9341.json` - Configuration for 2.4" ILI9341
@@ -101,7 +101,7 @@ GET https://api.github.com/repos/OakesekAo/Aura/releases/latest
 ### Binary Structure
 - **Single merged binary** - Contains bootloader, partitions, and application
 - **Flash offset**: 0x0 (simplified single-file flashing)
-- **Size**: ~628 KiB per variant
+- **Size**: ~705 KiB per variant
 - **SHA256 checksums**: Available in release assets
 
 ### Supported Display Matrix
@@ -151,7 +151,7 @@ const variants = [
 ## MCP Agent Implementation Notes
 
 ### Asset Verification
-- **Check file sizes**: Firmware binaries should be ~628 KiB
+- **Check file sizes**: Firmware binaries should be ~705 KiB
 - **Verify checksums**: Use GitHub-provided SHA256 hashes
 - **Validate JSON**: Ensure manifest files are valid JSON
 
@@ -196,7 +196,7 @@ const variants = [
 ### Pre-deployment Checklist
 - [ ] All 3 variants build successfully
 - [ ] Manifest files validate against ESPHome Web Tools schema
-- [ ] Binary sizes are reasonable (~628 KiB)
+- [ ] Binary sizes are reasonable (~705 KiB)
 - [ ] SHA256 checksums match
 - [ ] Test installation on actual 2.4" hardware
 
@@ -220,5 +220,5 @@ const variants = [
 ---
 
 **Last Updated**: September 4, 2025  
-**Current Release**: v1.0.0-web-installer  
+**Current Release**: v1.0.2-web-installer  
 **Primary Hardware**: 2.4" ILI9341/ST7789 displays
