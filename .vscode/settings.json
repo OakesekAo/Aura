@@ -1,45 +1,74 @@
 {
-  // Allow agent to auto-run safe terminal commands
+  // Auto-approve safe terminal commands
   "chat.tools.terminal.autoApprove": {
-    // Common safe commands
+    // Basic commands
     "echo": true,
-    "mkdir": true,
     "ls": true,
     "pwd": true,
     "cat": true,
-    "grep": true,
-    "find": true,
     "head": true,
     "tail": true,
     "wc": true,
-    "/^git (status|add|restore|diff|show|log|branch|tag)\\b/": true,
-    
-    // Git tag operations
-    "/^git tag\\b/": true,
-    "/^git push origin v\\d+\\.\\d+\\.\\d+$/": true,
-    "/^git push origin :refs\\/tags\\/v\\d+\\.\\d+\\.\\d+$/": true,
-    
-    // Arduino/build commands
-    "/^arduino-cli\\b/": true,
-    "/^gh\\b/": true,
     "sleep": true,
+    "grep": true,
+    "find": true,
+    "tree": true,
     
-    // Branch-specific git operations for fix-release-workflow-issues
-    "/^git (checkout|switch) -b?\\s+fix-release-workflow-issues\\b/": true,
-    "/^git commit(\\b|\\s)/": true,
-    "/^git push\\b.*\\s+origin\\s+fix-release-workflow-issues\\b/": true,
-    "/^git rebase\\b.*\\s+fix-release-workflow-issues\\b/": true,
+    // Git commands (safe read-only and feature branch operations)
+    "git status": true,
+    "git log": true,
+    "git log --oneline": true,
+    "git log --stat": true,
+    "git log --graph": true,
+    "git branch": true,
+    "git branch -a": true,
+    "git diff": true,
+    "git show": true,
+    "git tag": true,
+    "git remote": true,
+    "git config": true,
+    "git add": true,
+    "git add .": true,
+    "git commit": true,
+    "git commit -m": true,
+    "git checkout": true,
+    "git checkout -b": true,
+    "git push": true,
+    "git push origin": true,
+    "git fetch": true,
+    "git stash": true,
     
-    // Deny dangerous or destructive commands
+    // GitHub CLI
+    "gh": true,
+    "gh run": true,
+    "gh run list": true,
+    "gh run view": true,
+    "gh workflow": true,
+    "gh workflow list": true,
+    
+    // Arduino CLI
+    "arduino-cli": true,
+    "arduino-cli compile": true,
+    "arduino-cli board": true,
+    "arduino-cli core": true,
+    "arduino-cli lib": true,
+    
+    // Development tools
+    "curl": true,
+    "wget": true,
+    "which": true,
+    "file": true,
+    "ps": true,
+    "lsof": true,
+    
+    // Dangerous commands explicitly denied
     "rm": false,
     "rmdir": false,
-    "del": false,
+    "sudo": false,
     "chmod": false,
-    "chown": false,
-    "/\\b--force\\b/": false,
-    "/\\b--hard\\b/": false,
-    "/^git (push|merge|rebase)\\b.*\\b(main|master|develop)\\b/": false
+    "chown": false
   },
+  
   // Let agent run tasks without prompt
   "github.copilot.chat.agent.runTasks": true
 }

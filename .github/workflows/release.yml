@@ -107,30 +107,30 @@ jobs:
           --output-dir build/${{ matrix.variant.name }}
 
     - name: Extract ESP32 system binaries
-        run: |
-          # Find the ESP32 core path
-          ESP32_PATH=$(find ~/.arduino15/packages/esp32/hardware/esp32 -name "2.0.17" -type d | head -1)
-          echo "ESP32 path: $ESP32_PATH"
-          
-          # Create output directory
-          mkdir -p release/${{ matrix.variant_id }}
-          
-          # Copy system binaries with variant-specific names
-          cp "$ESP32_PATH/tools/partitions/boot_app0.bin" "release/${{ matrix.variant_id }}/boot_app0-${{ matrix.variant_id }}.bin"
-          cp "$ESP32_PATH/tools/sdk/esp32/bin/bootloader_dio_40m.bin" "release/${{ matrix.variant_id }}/bootloader-${{ matrix.variant_id }}.bin"
-          
-          # Create partition table (basic 4MB layout)
-          echo "# Name,   Type, SubType, Offset,  Size, Flags" > partition_table.csv
-          echo "nvs,      data, nvs,     0x9000,  0x5000," >> partition_table.csv
-          echo "otadata,  data, ota,     0xe000,  0x2000," >> partition_table.csv
-          echo "app0,     app,  ota_0,   0x10000, 0x140000," >> partition_table.csv
-          echo "spiffs,   data, spiffs,  0x150000,0xB0000," >> partition_table.csv
-          
-          # Generate partition binary
-          python "$ESP32_PATH/tools/gen_esp32part.py" partition_table.csv "release/${{ matrix.variant_id }}/partitions-${{ matrix.variant_id }}.bin"
-          
-          # Copy application binary
-          cp "build/${{ matrix.variant_id }}/aura.ino.bin" "release/${{ matrix.variant_id }}/app-${{ matrix.variant_id }}.bin"
+      run: |
+        # Find the ESP32 core path
+        ESP32_PATH=$(find ~/.arduino15/packages/esp32/hardware/esp32 -name "2.0.17" -type d | head -1)
+        echo "ESP32 path: $ESP32_PATH"
+        
+        # Create output directory
+        mkdir -p release/${{ matrix.variant.name }}
+        
+        # Copy system binaries with variant-specific names
+        cp "$ESP32_PATH/tools/partitions/boot_app0.bin" "release/${{ matrix.variant.name }}/boot_app0-${{ matrix.variant.name }}.bin"
+        cp "$ESP32_PATH/tools/sdk/esp32/bin/bootloader_dio_40m.bin" "release/${{ matrix.variant.name }}/bootloader-${{ matrix.variant.name }}.bin"
+        
+        # Create partition table (basic 4MB layout)
+        echo "# Name,   Type, SubType, Offset,  Size, Flags" > partition_table.csv
+        echo "nvs,      data, nvs,     0x9000,  0x5000," >> partition_table.csv
+        echo "otadata,  data, ota,     0xe000,  0x2000," >> partition_table.csv
+        echo "app0,     app,  ota_0,   0x10000, 0x140000," >> partition_table.csv
+        echo "spiffs,   data, spiffs,  0x150000,0xB0000," >> partition_table.csv
+        
+        # Generate partition binary
+        python "$ESP32_PATH/tools/gen_esp32part.py" partition_table.csv "release/${{ matrix.variant.name }}/partitions-${{ matrix.variant.name }}.bin"
+        
+        # Copy application binary
+        cp "build/${{ matrix.variant.name }}/aura.ino.bin" "release/${{ matrix.variant.name }}/app-${{ matrix.variant.name }}.bin"
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
