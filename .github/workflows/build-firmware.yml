@@ -76,15 +76,16 @@ jobs:
 
     - name: Build firmware for ${{ matrix.variant.name }}
       run: |
-        # Build firmware with web installer compatible settings
+        # Build firmware with explicit ESP32-WROOM-32 target for correct chip ID
         arduino-cli compile \
-          --fqbn esp32:esp32:esp32 \
+          --fqbn esp32:esp32:esp32:PSRAM=disabled,PartitionScheme=huge_app,CPUFreq=240,FlashMode=dio,FlashFreq=40,FlashSize=4M,UploadSpeed=921600,DebugLevel=none \
           --build-property "build.extra_flags=-DAURA_SCREEN=${{ matrix.variant.flag }} -DCORE_DEBUG_LEVEL=0" \
-          --build-property "build.partitions=huge_app" \
-          --build-property "build.flash_mode=dio" \
-          --build-property "build.flash_freq=40m" \
           --output-dir build/${{ matrix.variant.name }} \
           aura
+        
+        # Verify the build completed successfully
+        echo "Build completed for ${{ matrix.variant.name }}"
+        ls -la build/${{ matrix.variant.name }}/*.bin || echo "No .bin files found"
 
     - name: Install esptool for binary merging
       run: |
@@ -161,26 +162,42 @@ jobs:
         echo "Bootloader binary: $BOOTLOADER_BIN"
         echo "Partitions binary: $PARTITIONS_BIN"
         
+        # Verify binary files exist and show their info
+        if [ -f "$APP_BIN" ]; then
+          echo "App binary size: $(du -h "$APP_BIN" | cut -f1)"
+          # Check for ESP32 magic bytes
+          xxd -l 32 "$APP_BIN" | head -2
+        fi
+        
         # Use the built-in generated binaries if available, otherwise use system defaults
         if [ -f "$BOOTLOADER_BIN" ]; then
           FINAL_BOOTLOADER="$BOOTLOADER_BIN"
+          echo "Using sketch-generated bootloader: $BOOTLOADER_BIN"
         else
           FINAL_BOOTLOADER="$BOOTLOADER_PATH"
+          echo "Using system bootloader: $BOOTLOADER_PATH"
         fi
         
         if [ -f "$PARTITIONS_BIN" ]; then
           FINAL_PARTITIONS="$PARTITIONS_BIN"
+          echo "Using sketch-generated partitions: $PARTITIONS_BIN"
         else
           echo "ERROR: Partitions binary not found"
           exit 1
         fi
         
-        # Merge all binaries into single firmware file
-        esptool.py --chip esp32 merge-bin \
+        # Verify bootloader has correct chip ID (should start with 0xE9 for ESP32)
+        if [ -f "$FINAL_BOOTLOADER" ]; then
+          echo "Bootloader header:"
+          xxd -l 16 "$FINAL_BOOTLOADER" | head -1
+        fi
+        
+        # Merge all binaries into single firmware file with correct chip specification
+        esptool.py --chip esp32 merge_bin \
           -o firmware/aura-firmware-${{ matrix.variant.output }}.bin \
-          --flash-mode dio \
-          --flash-freq 40m \
-          --flash-size 4MB \
+          --flash_mode dio \
+          --flash_freq 40m \
+          --flash_size 4MB \
           0x1000 "$FINAL_BOOTLOADER" \
           0x8000 "$FINAL_PARTITIONS" \
           0xe000 "$BOOT_APP0_PATH" \
