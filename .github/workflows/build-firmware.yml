@@ -222,16 +222,25 @@ jobs:
         fi
         
         # Merge all binaries into single firmware file with correct chip specification
+        # For web installer compatibility, create a binary that starts from 0x0
         OUTPUT_NAME="aura-firmware-${{ matrix.variant.output }}"
+        
+        # Create a blank file for the first 4KB (0x0 to 0x1000)
+        dd if=/dev/zero of=firmware/blank_4k.bin bs=4096 count=1 2>/dev/null
+        
         esptool.py --chip esp32 merge_bin \
           -o firmware/${OUTPUT_NAME}.bin \
           --flash_mode dio \
           --flash_freq 40m \
           --flash_size 4MB \
+          0x0000 firmware/blank_4k.bin \
           0x1000 "$FINAL_BOOTLOADER" \
           0x8000 "$FINAL_PARTITIONS" \
           0xe000 "$BOOT_APP0_PATH" \
           0x10000 "$APP_BIN"
+          
+        # Clean up temporary file
+        rm -f firmware/blank_4k.bin
         
         echo "Created merged firmware: firmware/${OUTPUT_NAME}.bin"
         ls -la firmware/
