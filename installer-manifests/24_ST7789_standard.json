@@ -1,0 +1,15 @@
+{
+  "name": "Aura (2.4\" ST7789) - Standard",
+  "version": "v1.0.7-dual-flash",
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        { 
+          "path": "https://github.com/OakesekAo/Aura/releases/download/v1.0.7-dual-flash/aura-firmware-24-st7789.bin", 
+          "offset": 0 
+        }
+      ]
+    }
+  ]
+}

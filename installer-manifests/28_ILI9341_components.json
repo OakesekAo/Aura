@@ -1,0 +1,27 @@
+{
+  "name": "Aura (2.8\" ILI9341) - Components (Recommended)",
+  "version": "v1.0.7-dual-flash",
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {
+          "path": "https://github.com/OakesekAo/Aura/releases/download/v1.0.7-dual-flash/aura-bootloader-28-ili9341.bin",
+          "offset": 4096
+        },
+        {
+          "path": "https://github.com/OakesekAo/Aura/releases/download/v1.0.7-dual-flash/aura-partitions-28-ili9341.bin",
+          "offset": 32768
+        },
+        {
+          "path": "https://github.com/OakesekAo/Aura/releases/download/v1.0.7-dual-flash/aura-boot-app0-28-ili9341.bin",
+          "offset": 57344
+        },
+        {
+          "path": "https://github.com/OakesekAo/Aura/releases/download/v1.0.7-dual-flash/aura-app-28-ili9341.bin",
+          "offset": 65536
+        }
+      ]
+    }
+  ]
+}
