@@ -78,18 +78,20 @@ jobs:
       run: |
         echo "Building ${{ matrix.variant.name }}"
         
-        # Try multiple board configurations to find one that works
+        # Try board configurations matching the original Surrey-Homeware Aura setup
+        # Original uses: ESP32 Dev Module with Huge App partition scheme
         BOARD_CONFIGS=(
-          "esp32:esp32:esp32wroom32"
+          "esp32:esp32:esp32doit-devkit-v1"
+          "esp32:esp32:esp32dev"
           "esp32:esp32:esp32"
-          "esp32:esp32:esp32wrover"
+          "esp32:esp32:esp32wroom32"
         )
         
         BUILD_SUCCESS=false
         for BOARD_FQBN in "${BOARD_CONFIGS[@]}"; do
           echo "Trying board configuration: $BOARD_FQBN"
           
-          # Build firmware with current board configuration
+          # Build firmware with Surrey-Homeware Aura compatible settings
           if arduino-cli compile \
             --fqbn "${BOARD_FQBN}:PSRAM=disabled,PartitionScheme=huge_app,CPUFreq=240,FlashMode=dio,FlashFreq=40,FlashSize=4M,UploadSpeed=921600,DebugLevel=none" \
             --build-property "build.extra_flags=-DAURA_SCREEN=${{ matrix.variant.flag }} -DCORE_DEBUG_LEVEL=0 -DBOARD_HAS_PSRAM=0" \
