@@ -7,6 +7,7 @@
 #include <XPT2046_Touchscreen.h>
 #include <Preferences.h>
 #include "esp_system.h"
+#include "esp_chip_info.h"
 
 // WiFi support with custom implementation
 #if ENABLE_WIFI
@@ -462,6 +463,40 @@ void my_disp_flush(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map
 void setup() {
   Serial.begin(115200);
   delay(100);
+  
+  // Print chip information for debugging
+  Serial.println("=== Aura ESP32 Board Information ===");
+  Serial.printf("Chip Model: %s\n", ESP.getChipModel());
+  Serial.printf("Chip Revision: %d\n", ESP.getChipRevision());
+  Serial.printf("Chip Cores: %d\n", ESP.getChipCores());
+  Serial.printf("CPU Frequency: %d MHz\n", ESP.getCpuFreqMHz());
+  Serial.printf("Free Heap: %d bytes\n", ESP.getFreeHeap());
+  Serial.printf("Flash Size: %d bytes\n", ESP.getFlashChipSize());
+  Serial.printf("Flash Speed: %d Hz\n", ESP.getFlashChipSpeed());
+  Serial.printf("SDK Version: %s\n", ESP.getSdkVersion());
+  
+  // Get detailed chip info
+  esp_chip_info_t chip_info;
+  esp_chip_info(&chip_info);
+  Serial.printf("Chip Features: ");
+  if (chip_info.features & CHIP_FEATURE_WIFI_BGN) Serial.print("WiFi ");
+  if (chip_info.features & CHIP_FEATURE_BLE) Serial.print("BLE ");
+  if (chip_info.features & CHIP_FEATURE_BT) Serial.print("BT ");
+  if (chip_info.features & CHIP_FEATURE_EMB_FLASH) Serial.print("Embedded-Flash ");
+  Serial.println();
+  
+  // Check for PSRAM
+  #ifdef BOARD_HAS_PSRAM
+  if (psramFound()) {
+    Serial.printf("PSRAM Found: %d bytes\n", ESP.getPsramSize());
+  } else {
+    Serial.println("PSRAM: Not found");
+  }
+  #else
+  Serial.println("PSRAM: Disabled in build");
+  #endif
+  
+  Serial.println("===================================");
 
   tft.init();
   pinMode(LCD_BACKLIGHT_PIN, OUTPUT);

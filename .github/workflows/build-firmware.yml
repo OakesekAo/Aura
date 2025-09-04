@@ -76,15 +76,40 @@ jobs:
 
     - name: Build firmware for ${{ matrix.variant.name }}
       run: |
-        # Build firmware with explicit ESP32-WROOM-32 target for correct chip ID
-        arduino-cli compile \
-          --fqbn esp32:esp32:esp32:PSRAM=disabled,PartitionScheme=huge_app,CPUFreq=240,FlashMode=dio,FlashFreq=40,FlashSize=4M,UploadSpeed=921600,DebugLevel=none \
-          --build-property "build.extra_flags=-DAURA_SCREEN=${{ matrix.variant.flag }} -DCORE_DEBUG_LEVEL=0" \
-          --output-dir build/${{ matrix.variant.name }} \
-          aura
+        echo "Building ${{ matrix.variant.name }}"
+        
+        # Try multiple board configurations to find one that works
+        BOARD_CONFIGS=(
+          "esp32:esp32:esp32wroom32"
+          "esp32:esp32:esp32"
+          "esp32:esp32:esp32wrover"
+        )
+        
+        BUILD_SUCCESS=false
+        for BOARD_FQBN in "${BOARD_CONFIGS[@]}"; do
+          echo "Trying board configuration: $BOARD_FQBN"
+          
+          # Build firmware with current board configuration
+          if arduino-cli compile \
+            --fqbn "${BOARD_FQBN}:PSRAM=disabled,PartitionScheme=huge_app,CPUFreq=240,FlashMode=dio,FlashFreq=40,FlashSize=4M,UploadSpeed=921600,DebugLevel=none" \
+            --build-property "build.extra_flags=-DAURA_SCREEN=${{ matrix.variant.flag }} -DCORE_DEBUG_LEVEL=0 -DBOARD_HAS_PSRAM=0" \
+            --output-dir build/${{ matrix.variant.name }} \
+            aura; then
+            
+            echo "SUCCESS: Build completed for ${{ matrix.variant.name }} with $BOARD_FQBN"
+            BUILD_SUCCESS=true
+            break
+          else
+            echo "FAILED: Build failed for $BOARD_FQBN, trying next configuration..."
+          fi
+        done
+        
+        if [ "$BUILD_SUCCESS" = false ]; then
+          echo "ERROR: All board configurations failed"
+          exit 1
+        fi
         
         # Verify the build completed successfully
-        echo "Build completed for ${{ matrix.variant.name }}"
         ls -la build/${{ matrix.variant.name }}/*.bin || echo "No .bin files found"
 
     - name: Install esptool for binary merging
@@ -165,7 +190,8 @@ jobs:
         # Verify binary files exist and show their info
         if [ -f "$APP_BIN" ]; then
           echo "App binary size: $(du -h "$APP_BIN" | cut -f1)"
-          # Check for ESP32 magic bytes
+          # Check for ESP32 magic bytes and chip target
+          echo "App binary header (chip target check):"
           xxd -l 32 "$APP_BIN" | head -2
         fi
         
@@ -188,13 +214,17 @@ jobs:
         
         # Verify bootloader has correct chip ID (should start with 0xE9 for ESP32)
         if [ -f "$FINAL_BOOTLOADER" ]; then
-          echo "Bootloader header:"
+          echo "Bootloader header (chip ID check):"
           xxd -l 16 "$FINAL_BOOTLOADER" | head -1
+          echo "Checking bootloader chip target..."
+          CHIP_ID=$(xxd -l 1 -p "$FINAL_BOOTLOADER" | head -c 2)
+          echo "Bootloader chip ID: 0x$CHIP_ID"
         fi
         
         # Merge all binaries into single firmware file with correct chip specification
+        OUTPUT_NAME="aura-firmware-${{ matrix.variant.output }}"
         esptool.py --chip esp32 merge_bin \
-          -o firmware/aura-firmware-${{ matrix.variant.output }}.bin \
+          -o firmware/${OUTPUT_NAME}.bin \
           --flash_mode dio \
           --flash_freq 40m \
           --flash_size 4MB \
@@ -203,7 +233,7 @@ jobs:
           0xe000 "$BOOT_APP0_PATH" \
           0x10000 "$APP_BIN"
         
-        echo "Created merged firmware: firmware/aura-firmware-${{ matrix.variant.output }}.bin"
+        echo "Created merged firmware: firmware/${OUTPUT_NAME}.bin"
         ls -la firmware/
 
     - name: Create manifest file
@@ -215,6 +245,7 @@ jobs:
           VERSION="development"
         fi
         
+        OUTPUT_NAME="aura-firmware-${{ matrix.variant.output }}"
         # Create manifest JSON for web installer
         cat > firmware/manifest-${{ matrix.variant.output }}.json << EOF
         {
@@ -227,7 +258,7 @@ jobs:
               "chipFamily": "ESP32",
               "parts": [
                 {
-                  "path": "aura-firmware-${{ matrix.variant.output }}.bin",
+                  "path": "${OUTPUT_NAME}.bin",
                   "offset": 0
                 }
               ]
