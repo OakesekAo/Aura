@@ -28,9 +28,9 @@ jobs:
         path: |
           ~/.arduino15
           ~/Arduino/libraries
-        key: ${{ runner.os }}-arduino-esp32-2.0.17-${{ hashFiles('**/*.ino') }}
+        key: ${{ runner.os }}-arduino-esp32-3.0.4-${{ hashFiles('**/*.ino') }}
         restore-keys: |
-          ${{ runner.os }}-arduino-esp32-2.0.17-
+          ${{ runner.os }}-arduino-esp32-3.0.4-
 
     - name: Setup Arduino CLI
       uses: arduino/setup-arduino-cli@v1
@@ -39,7 +39,7 @@ jobs:
       run: |
         arduino-cli config init --overwrite
         arduino-cli core update-index
-        arduino-cli core install esp32:esp32@2.0.17
+        arduino-cli core install esp32:esp32@3.0.4
 
     - name: Install required libraries
       run: |
@@ -78,8 +78,11 @@ jobs:
       run: |
         # Build firmware with web installer compatible settings
         arduino-cli compile \
-          --fqbn esp32:esp32:esp32:PartitionScheme=huge_app,FlashMode=dio,FlashFreq=40,FlashSize=4M \
+          --fqbn esp32:esp32:esp32 \
           --build-property "build.extra_flags=-DAURA_SCREEN=${{ matrix.variant.flag }} -DCORE_DEBUG_LEVEL=0" \
+          --build-property "build.partitions=huge_app" \
+          --build-property "build.flash_mode=dio" \
+          --build-property "build.flash_freq=40m" \
           --output-dir build/${{ matrix.variant.name }} \
           aura
 
@@ -90,11 +93,11 @@ jobs:
     - name: Create merged firmware binary
       run: |
         # Find the ESP32 core path for system binaries
-        ESP32_PATH=$(find ~/.arduino15/packages/esp32/hardware/esp32 -name "2.0.17" -type d | head -1)
+        ESP32_PATH=$(find ~/.arduino15/packages/esp32/hardware/esp32 -name "3.0.4" -type d | head -1)
         echo "ESP32 path: $ESP32_PATH"
         
         if [ -z "$ESP32_PATH" ]; then
-          echo "ERROR: ESP32 core 2.0.17 not found"
+          echo "ERROR: ESP32 core 3.0.4 not found"
           exit 1
         fi
         
@@ -309,7 +312,7 @@ jobs:
           
           ### Technical Details
           
-          - ESP32 Core: 2.0.17 (web installer compatible)
+          - ESP32 Core: 3.0.4 (web installer compatible)
           - Partition Scheme: huge_app (4MB)
           - Flash Mode: DIO, 40MHz
           - All binaries merged for single-file flashing at offset 0x0
