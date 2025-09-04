@@ -28,9 +28,9 @@ jobs:
         path: |
           ~/.arduino15
           ~/Arduino/libraries
-        key: ${{ runner.os }}-arduino-esp32-2.0.11-${{ hashFiles('**/*.ino') }}
+        key: ${{ runner.os }}-arduino-esp32-2.0.17-${{ hashFiles('**/*.ino') }}
         restore-keys: |
-          ${{ runner.os }}-arduino-esp32-2.0.11-
+          ${{ runner.os }}-arduino-esp32-2.0.17-
 
     - name: Setup Arduino CLI
       uses: arduino/setup-arduino-cli@v1
@@ -39,7 +39,7 @@ jobs:
       run: |
         arduino-cli config init
         arduino-cli core update-index
-        arduino-cli core install esp32:esp32@2.0.11
+        arduino-cli core install esp32:esp32@2.0.17
 
     - name: Install required libraries
       run: |
@@ -47,7 +47,7 @@ jobs:
         arduino-cli lib install "TFT_eSPI@2.5.43"
         arduino-cli lib install "WiFiManager@2.0.17"
         arduino-cli lib install "XPT2046_Touchscreen@1.4"
-        arduino-cli lib install "lvgl@8.3.11"
+        arduino-cli lib install "lvgl@9.2.0"
 
     - name: Setup LVGL configuration
       run: |
