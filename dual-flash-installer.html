@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura Weather Display - Dual Flash Options</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            margin-bottom: 40px;
+            opacity: 0.9;
+            font-size: 1.2rem;
+        }
+        .flash-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .flash-option {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        .flash-option:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .flash-option h3 {
+            color: #fff;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        .flash-option p {
+            margin-bottom: 20px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+        .install-button {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+        }
+        .install-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+        .install-button.components {
+            background: linear-gradient(45deg, #007bff, #6610f2);
+        }
+        .install-button.components:hover {
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+        }
+        .troubleshooting {
+            background: rgba(255, 193, 7, 0.2);
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+        .variant-buttons {
+            margin-top: 15px;
+        }
+        .variant-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin: 5px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        .variant-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        @media (max-width: 768px) {
+            .flash-options {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌤️ Aura Weather Display</h1>
+        <p class="subtitle">Choose your installation method - we now support two approaches for maximum compatibility!</p>
+        
+        <div class="flash-options">
+            <div class="flash-option">
+                <h3>🚀 Standard Flash (Recommended)</h3>
+                <p>Single merged binary - works with most ESP32 boards. This is our standard approach that should work on the majority of hardware.</p>
+                
+                <div class="variant-buttons">
+                    <a href="https://esp.huhn.me/?flashUrl=https://github.com/OakesekAo/Aura/releases/download/v1.0.7-dual-flash/manifest-24-ili9341.json" class="install-button">
+                        📱 2.4" ILI9341
+                    </a>
+                    <a href="https://esp.huhn.me/?flashUrl=https://github.com/OakesekAo/Aura/releases/download/v1.0.7-dual-flash/manifest-24-st7789.json" class="install-button">
+                        📱 2.4" ST7789
+                    </a>
+                    <a href="https://esp.huhn.me/?flashUrl=https://github.com/OakesekAo/Aura/releases/download/v1.0.7-dual-flash/manifest-28-ili9341.json" class="install-button">
+                        📱 2.8" ILI9341
+                    </a>
+                </div>
+            </div>
+            
+            <div class="flash-option">
+                <h3>🔧 Component Flash (BongoCat Style)</h3>
+                <p>Separate bootloader, partitions, and app components. Use this if you get "wrong chip id" errors with the standard method.</p>
+                
+                <div class="variant-buttons">
+                    <a href="https://esp.huhn.me/?flashUrl=https://github.com/OakesekAo/Aura/releases/download/v1.0.7-dual-flash/manifest-components-24-ili9341.json" class="install-button components">
+                        📱 2.4" ILI9341
+                    </a>
+                    <a href="https://esp.huhn.me/?flashUrl=https://github.com/OakesekAo/Aura/releases/download/v1.0.7-dual-flash/manifest-components-24-st7789.json" class="install-button components">
+                        📱 2.4" ST7789
+                    </a>
+                    <a href="https://esp.huhn.me/?flashUrl=https://github.com/OakesekAo/Aura/releases/download/v1.0.7-dual-flash/manifest-components-28-ili9341.json" class="install-button components">
+                        📱 2.8" ILI9341
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="troubleshooting">
+            <h3>🚨 Troubleshooting "Wrong Chip ID 0x0002" Error</h3>
+            <p><strong>If you're getting chip ID errors:</strong></p>
+            <ol>
+                <li><strong>Try Component Flash method</strong> - The separate components approach matches the BongoCat repo that works on your hardware</li>
+                <li><strong>Hold BOOT button</strong> - Press and hold the BOOT button on your ESP32 during connection</li>
+                <li><strong>Check your display type</strong> - Make sure you select the correct variant for your hardware</li>
+                <li><strong>Try different USB cable/port</strong> - Some cables only carry power, not data</li>
+            </ol>
+            <p><strong>Analysis shows:</strong> BongoCat working binary uses bootloader magic <code>e903</code> while our merged binary uses <code>e904</code>. The component approach should resolve this compatibility issue.</p>
+        </div>
+    </div>
+</body>
+</html>

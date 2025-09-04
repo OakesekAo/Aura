@@ -1,0 +1,29 @@
+{
+  "name": "Aura 24_ILI9341 (Components)",
+  "version": "v1.0.7-dual-flash",
+  "home_assistant_domain": "esphome",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {
+          "path": "aura-bootloader-24-ili9341.bin",
+          "offset": 4096
+        },
+        {
+          "path": "aura-partitions-24-ili9341.bin",
+          "offset": 32768
+        },
+        {
+          "path": "aura-boot-app0-24-ili9341.bin",
+          "offset": 57344
+        },
+        {
+          "path": "aura-app-24-ili9341.bin",
+          "offset": 65536
+        }
+      ]
+    }
+  ]
+}
