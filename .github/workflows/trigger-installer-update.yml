@@ -1,0 +1,23 @@
+name: Trigger Installer Update on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify-installer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send repository_dispatch to installer repo
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.INSTALLER_PAT }}" \
+            https://api.github.com/repos/OakesekAo/aura-installer/dispatches \
+            -d '{"event_type": "aura-release", "client_payload": {"release_tag": "${{ github.event.release.tag_name }}", "release_url": "${{ github.event.release.html_url }}"}}'
+      
+      - name: Log dispatch event
+        run: |
+          echo "🚀 Triggered aura-installer refresh for release: ${{ github.event.release.tag_name }}"
+          echo "📦 Release URL: ${{ github.event.release.html_url }}"
+          echo "🔄 Dispatch sent to: https://github.com/OakesekAo/aura-installer"
