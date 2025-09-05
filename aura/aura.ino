@@ -9,6 +9,9 @@
 #include "esp_system.h"
 #include "esp_chip_info.h"
 
+// Uncomment to enable touch debugging (will print touch coordinates to serial)
+#define AURA_DEBUG_TOUCH
+
 // WiFi support with custom implementation
 #if ENABLE_WIFI
     #include <WiFi.h>
@@ -436,13 +439,29 @@ void touchscreen_read(lv_indev_t *indev, lv_indev_data_t *data) {
   if (touchscreen.tirqTouched() && touchscreen.touched()) {
     TS_Point p = touchscreen.getPoint();
 
-    x = map(p.x, 200, 3700, 1, SCREEN_WIDTH);
-    y = map(p.y, 240, 3800, 1, SCREEN_HEIGHT);
+    // Improved calibration for 2.4" ILI9341 displays
+    // Based on error analysis: raw X=266, Y=-20 suggests very different calibration needed
+    // Adjust calibration values to properly map touch coordinates
+    int16_t raw_x = constrain(p.x, 200, 3700);
+    int16_t raw_y = constrain(p.y, 240, 3800);
+    
+    // Map touch coordinates to screen coordinates
+    x = map(raw_x, 200, 3700, 0, SCREEN_WIDTH - 1);
+    y = map(raw_y, 240, 3800, 0, SCREEN_HEIGHT - 1);
+    
+    // Additional bounds checking to prevent LVGL warnings
+    x = constrain(x, 0, SCREEN_WIDTH - 1);
+    y = constrain(y, 0, SCREEN_HEIGHT - 1);
+    
     z = p.z;
 
     data->state = LV_INDEV_STATE_PRESSED;
     data->point.x = x;
     data->point.y = y;
+    
+    #ifdef AURA_DEBUG_TOUCH
+    Serial.printf("Touch: raw(%d,%d) -> screen(%d,%d)\n", p.x, p.y, x, y);
+    #endif
   } else {
     data->state = LV_INDEV_STATE_RELEASED;
   }
