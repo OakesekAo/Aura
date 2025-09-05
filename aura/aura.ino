@@ -27,8 +27,20 @@
 #define XPT2046_CLK 25   // T_CLK
 #define XPT2046_CS 33    // T_CS
 #define LCD_BACKLIGHT_PIN 21  // Use hardcoded value for now - TODO: Fix screen config system
-#define SCREEN_WIDTH 240      // Use hardcoded value for now - TODO: Fix screen config system  
-#define SCREEN_HEIGHT 320     // Use hardcoded value for now - TODO: Fix screen config system
+
+// Get screen dimensions from config
+#ifdef AURA_TFT_WIDTH
+  #define SCREEN_WIDTH AURA_TFT_WIDTH
+#else
+  #define SCREEN_WIDTH 240      // Default fallback
+#endif
+
+#ifdef AURA_TFT_HEIGHT  
+  #define SCREEN_HEIGHT AURA_TFT_HEIGHT
+#else
+  #define SCREEN_HEIGHT 320     // Default fallback
+#endif
+
 #define DRAW_BUF_SIZE (SCREEN_WIDTH * SCREEN_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
 
 #define LATITUDE_DEFAULT "51.5074"
@@ -439,15 +451,34 @@ void touchscreen_read(lv_indev_t *indev, lv_indev_data_t *data) {
   if (touchscreen.tirqTouched() && touchscreen.touched()) {
     TS_Point p = touchscreen.getPoint();
 
-    // Improved calibration for 2.4" ILI9341 displays
-    // Based on error analysis: raw X=266, Y=-20 suggests very different calibration needed
-    // Adjust calibration values to properly map touch coordinates
-    int16_t raw_x = constrain(p.x, 200, 3700);
-    int16_t raw_y = constrain(p.y, 240, 3800);
+    // Screen-specific touchscreen calibration
+    int16_t min_x, max_x, min_y, max_y;
+    
+    #if defined(AURA_24_ILI9341)
+      // 2.4" ILI9341 calibration
+      min_x = 200; max_x = 3700;
+      min_y = 240; max_y = 3800;
+    #elif defined(AURA_28_ILI9341)
+      // 2.8" ILI9341 calibration (may need adjustment based on your hardware)
+      min_x = 300; max_x = 3800;
+      min_y = 300; max_y = 3700;
+    #elif defined(AURA_24_ST7789)
+      // 2.4" ST7789 calibration (may need adjustment based on your hardware)
+      min_x = 250; max_x = 3750;
+      min_y = 250; max_y = 3750;
+    #else
+      // Default calibration (28" ILI9341)
+      min_x = 300; max_x = 3800;
+      min_y = 300; max_y = 3700;
+    #endif
+    
+    // Constrain raw values to expected range
+    int16_t raw_x = constrain(p.x, min_x, max_x);
+    int16_t raw_y = constrain(p.y, min_y, max_y);
     
     // Map touch coordinates to screen coordinates
-    x = map(raw_x, 200, 3700, 0, SCREEN_WIDTH - 1);
-    y = map(raw_y, 240, 3800, 0, SCREEN_HEIGHT - 1);
+    x = map(raw_x, min_x, max_x, 0, SCREEN_WIDTH - 1);
+    y = map(raw_y, min_y, max_y, 0, SCREEN_HEIGHT - 1);
     
     // Additional bounds checking to prevent LVGL warnings
     x = constrain(x, 0, SCREEN_WIDTH - 1);
@@ -460,7 +491,8 @@ void touchscreen_read(lv_indev_t *indev, lv_indev_data_t *data) {
     data->point.y = y;
     
     #ifdef AURA_DEBUG_TOUCH
-    Serial.printf("Touch: raw(%d,%d) -> screen(%d,%d)\n", p.x, p.y, x, y);
+    Serial.printf("Touch: raw(%d,%d) cal(%d-%d,%d-%d) -> screen(%d,%d)\n", 
+                  p.x, p.y, min_x, max_x, min_y, max_y, x, y);
     #endif
   } else {
     data->state = LV_INDEV_STATE_RELEASED;
