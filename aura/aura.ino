@@ -451,38 +451,23 @@ void touchscreen_read(lv_indev_t *indev, lv_indev_data_t *data) {
   if (touchscreen.tirqTouched() && touchscreen.touched()) {
     TS_Point p = touchscreen.getPoint();
 
-    // Screen-specific touchscreen calibration
-    int16_t min_x, max_x, min_y, max_y;
-    
-    #if defined(AURA_24_ILI9341)
-      // 2.4" ILI9341 calibration
-      min_x = 200; max_x = 3700;
-      min_y = 240; max_y = 3800;
-    #elif defined(AURA_28_ILI9341)
-      // 2.8" ILI9341 calibration (may need adjustment based on your hardware)
-      min_x = 300; max_x = 3800;
-      min_y = 300; max_y = 3700;
-    #elif defined(AURA_24_ST7789)
-      // 2.4" ST7789 calibration (may need adjustment based on your hardware)
-      min_x = 250; max_x = 3750;
-      min_y = 250; max_y = 3750;
-    #else
-      // Default calibration (28" ILI9341)
-      min_x = 300; max_x = 3800;
-      min_y = 300; max_y = 3700;
-    #endif
+    // Use proven CYD (Cheap Yellow Display) calibration values
+    // These are the standard values from ESP32-Cheap-Yellow-Display repo
+    // that work reliably with 2.4" XPT2046 touchscreens
+    int16_t min_x = 200, max_x = 3700;   // CYD standard X range
+    int16_t min_y = 240, max_y = 3800;   // CYD standard Y range
     
     // Constrain raw values to expected range
     int16_t raw_x = constrain(p.x, min_x, max_x);
     int16_t raw_y = constrain(p.y, min_y, max_y);
     
-    // Map touch coordinates to screen coordinates
-    x = map(raw_x, min_x, max_x, 0, SCREEN_WIDTH - 1);
-    y = map(raw_y, min_y, max_y, 0, SCREEN_HEIGHT - 1);
+    // Map touch coordinates to screen coordinates  
+    x = map(raw_x, min_x, max_x, 0, AURA_TFT_WIDTH - 1);
+    y = map(raw_y, min_y, max_y, 0, AURA_TFT_HEIGHT - 1);
     
     // Additional bounds checking to prevent LVGL warnings
-    x = constrain(x, 0, SCREEN_WIDTH - 1);
-    y = constrain(y, 0, SCREEN_HEIGHT - 1);
+    x = constrain(x, 0, AURA_TFT_WIDTH - 1);
+    y = constrain(y, 0, AURA_TFT_HEIGHT - 1);
     
     z = p.z;
 
