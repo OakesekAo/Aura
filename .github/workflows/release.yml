@@ -56,15 +56,15 @@ jobs:
       run: |
         arduino-cli config init --overwrite
         arduino-cli core update-index
-        arduino-cli core install esp32:esp32@3.0.4
+        arduino-cli core install esp32:esp32@2.0.17
 
     - name: Install required libraries
       run: |
         arduino-cli lib install "TFT_eSPI@2.5.43"
         arduino-cli lib install "XPT2046_Touchscreen@1.4"
         arduino-cli lib install "ArduinoJson@7.0.4"
-        arduino-cli lib install "Preferences@2.1.0"
-        arduino-cli lib install "lvgl@9.2.2"
+        arduino-cli lib install "Preferences@2.0.0"
+        arduino-cli lib install "lvgl@9.2.0"
 
     - name: Setup LVGL configuration
       run: |
@@ -101,15 +101,21 @@ jobs:
 
     - name: Build firmware for ${{ matrix.variant.name }}
       run: |
-        # Build firmware with variant configuration
-        arduino-cli compile --fqbn esp32:esp32:esp32 aura \
-          --build-property "compiler.cpp.extra_flags=-D${{ matrix.variant.define }} -DENABLE_WIFI=0" \
-          --output-dir build/${{ matrix.variant.name }}
+        # Build firmware with explicit ESP32-WROOM-32 target for correct chip ID (working configuration)
+        arduino-cli compile \
+          --fqbn esp32:esp32:esp32:PSRAM=disabled,PartitionScheme=huge_app,CPUFreq=240,FlashMode=dio,FlashFreq=40,FlashSize=4M,UploadSpeed=921600,DebugLevel=none \
+          --build-property "build.extra_flags=-D${{ matrix.variant.define }} -DCORE_DEBUG_LEVEL=0" \
+          --output-dir build/${{ matrix.variant.name }} \
+          aura
+        
+        # Verify the build completed successfully
+        echo "Build completed for ${{ matrix.variant.name }}"
+        ls -la build/${{ matrix.variant.name }}/*.bin || echo "No .bin files found"
 
     - name: Extract ESP32 system binaries
       run: |
         # Find the ESP32 core path
-        ESP32_PATH=$(find ~/.arduino15/packages/esp32/hardware/esp32 -name "3.0.4" -type d | head -1)
+        ESP32_PATH=$(find ~/.arduino15/packages/esp32/hardware/esp32 -name "2.0.17" -type d | head -1)
         echo "ESP32 path: $ESP32_PATH"
         
         # Debug: List the actual directory structure to see where files are located
@@ -186,8 +192,11 @@ jobs:
       run: |
         mkdir -p assets
         
-        # Move all firmware files to assets directory with correct names
-        find release/ -name "*.bin" -exec cp {} assets/ \;
+        # Move and rename firmware files with correct naming convention
+        find release/ -name "bootloader-*.bin" -exec cp {} assets/ \; -exec sh -c 'for f; do mv "assets/$(basename "$f")" "assets/aura-$(basename "$f")"; done' _ {} \;
+        find release/ -name "partitions-*.bin" -exec cp {} assets/ \; -exec sh -c 'for f; do mv "assets/$(basename "$f")" "assets/aura-$(basename "$f")"; done' _ {} \;
+        find release/ -name "boot_app0-*.bin" -exec cp {} assets/ \; -exec sh -c 'for f; do mv "assets/$(basename "$f")" "assets/aura-boot-$(basename "$f" | sed "s/boot_app0-/app0-/")"; done' _ {} \;
+        find release/ -name "app-*.bin" -exec cp {} assets/ \; -exec sh -c 'for f; do mv "assets/$(basename "$f")" "assets/aura-$(basename "$f")"; done' _ {} \;
         
         # List files for verification
         echo "Release assets:"
@@ -217,10 +226,11 @@ jobs:
           - `app-{variant}.bin` at 0x10000
           
           ### Changes in this Release
-          - Optimized LVGL memory usage (49% flash usage vs previous 152%)
-          - Disabled unused LVGL widgets to save over 1.3MB
-          - Improved build system for multiple display variants
-          - Ready for web installer integration
+          - **Fixed touchscreen calibration** - Uses proven CYD (Cheap Yellow Display) values
+          - **Improved screen compatibility** - Supports all 240×320 displays (2.4"/2.8" ILI9341, 2.4" ST7789)
+          - **Eliminated LVGL warnings** - Proper coordinate bounds checking
+          - **Enhanced debugging** - Touch debug output for calibration verification
+          - **Optimized LVGL memory usage** - 49% flash usage vs previous 152%
         files: assets/*
         draft: false
         prerelease: false
